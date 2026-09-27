@@ -8,13 +8,18 @@ struct HabitBoardView: View {
     @Query(sort: \Habit.sortOrder) private var habits: [Habit]
 
     @State private var today = Date.now
+    @State private var weekOffset = 0
     @State private var editorTarget: EditorTarget?
     @State private var habitToDelete: Habit?
 
     private let calendar = AppCalendar.make()
 
+    private var displayedDate: Date {
+        calendar.date(byAdding: .day, value: 7 * weekOffset, to: today) ?? today
+    }
+
     private var week: [Date] {
-        HabitProgress.weekDates(containing: today, calendar: calendar)
+        HabitProgress.weekDates(containing: displayedDate, calendar: calendar)
     }
 
     var body: some View {
@@ -76,25 +81,62 @@ struct HabitBoardView: View {
         } message: {
             Text("지금까지의 체크 기록도 함께 지워져요.")
         }
-        // 앱을 다시 열었을 때 날짜가 바뀌었으면 '오늘'을 갱신
+        // 앱을 다시 열었을 때 날짜가 바뀌었으면 '오늘'을 갱신하고 이번 주로 돌아온다
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { today = .now }
+            if phase == .active {
+                today = .now
+                weekOffset = 0
+            }
         }
     }
 
     // MARK: - 머리글
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(rangeText)
-                .font(.spoqa(13, .bold, relativeTo: .footnote))
-                .foregroundStyle(Theme.stem)
-                .monospacedDigit()
-            Text("이번 주")
-                .font(.spoqa(26, .bold, relativeTo: .largeTitle))
-                .foregroundStyle(Theme.soil)
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(rangeText)
+                    .font(.spoqa(13, .bold, relativeTo: .footnote))
+                    .foregroundStyle(Theme.stem)
+                    .monospacedDigit()
+                Text(weekTitle)
+                    .font(.spoqa(26, .bold, relativeTo: .largeTitle))
+                    .foregroundStyle(Theme.soil)
+            }
+            Spacer()
+            HStack(spacing: 4) {
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) { weekOffset -= 1 }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.soil)
+                        .frame(width: 32, height: 32)
+                }
+                .accessibilityLabel("지난주")
+
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) { weekOffset += 1 }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(weekOffset >= 0 ? Theme.stem.opacity(0.35) : Theme.soil)
+                        .frame(width: 32, height: 32)
+                }
+                .disabled(weekOffset >= 0)
+                .accessibilityLabel("다음 주")
+            }
         }
         .padding(.top, 4)
+    }
+
+    private var weekTitle: String {
+        switch weekOffset {
+        case 0: return "이번 주"
+        case -1: return "지난주"
+        case ..<(-1): return "\(-weekOffset)주 전"
+        default: return "이번 주"
+        }
     }
 
     private var rangeText: String {

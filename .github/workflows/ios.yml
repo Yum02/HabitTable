@@ -1,0 +1,100 @@
+# 클라우드 Mac에서 앱을 빌드 → 테스트 → iPhone 시뮬레이터 스크린샷을 만듭니다.
+# 결과: Actions 탭 → 실행 기록 → 하단 Artifacts의 "screenshots"
+name: iOS Build & Screenshot
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Arrange files (웹 업로드로 폴더 구조가 사라진 경우 정리)
+        run: |
+          # 예전 달력 화면 파일은 더 이상 쓰지 않음
+          rm -f CalendarView.swift CalendarModel.swift HabitListSection.swift CalendarModelTests.swift
+          rm -f HabitTable/CalendarView.swift HabitTable/CalendarModel.swift HabitTable/HabitListSection.swift HabitTableTests/CalendarModelTests.swift
+          mkdir -p HabitTable HabitTableTests
+          for f in *Tests.swift; do if [ -e "$f" ]; then mv "$f" HabitTableTests/; fi; done
+          for f in *.swift *.ttf SpoqaHanSansNeo-OFL.txt; do if [ -e "$f" ]; then mv "$f" HabitTable/; fi; done
+          ls -R HabitTable HabitTableTests
+
+      - name: Fetch fonts (스포카 한 산스 Neo, SIL OFL)
+        run: |
+          if [ ! -e HabitTable/SpoqaHanSansNeo-Regular.ttf ]; then
+            npm pack spoqa-han-sans@3.3.0 --silent
+            tar xzf spoqa-han-sans-3.3.0.tgz
+            SRC=package/Subset/SpoqaHanSansNeo
+            cp $SRC/SpoqaHanSansNeo-Regular.ttf $SRC/SpoqaHanSansNeo-Medium.ttf $SRC/SpoqaHanSansNeo-Bold.ttf HabitTable/
+            cp $SRC/LICENSE_OFL.txt HabitTable/SpoqaHanSansNeo-OFL.txt
+            rm -rf package spoqa-han-sans-3.3.0.tgz
+          fi
+          ls HabitTable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Pick iPhone simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, re, sys
+          devices = json.load(sys.stdin)["devices"]
+          best = None
+          for runtime, items in devices.items():
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              if not m:
+                  continue
+              ver = (int(m.group(1)), int(m.group(2)))
+              for d in items:
+                  if d["name"].startswith("iPhone"):
+                      score = (ver, "Pro" in d["name"] and "Max" not in d["name"])
+                      if best is None or score > best[0]:
+                          best = (score, d["udid"], d["name"])
+          print(best[1]); print(best[2], best[0], file=sys.stderr)
+          ')
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: Build & run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project HabitTable.xcodeproj \
+            -scheme HabitTable \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO | tail -n 60
+
+      - name: Launch app in simulator & take screenshots
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          APP=build/Build/Products/Debug-iphonesimulator/HabitTable.app
+          BUNDLE=com.habittable.app
+          mkdir -p screenshots
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 --batteryState charged
+          xcrun simctl install "$UDID" "$APP"
+
+          for MODE in light dark; do
+            xcrun simctl ui "$UDID" appearance "$MODE"
+            xcrun simctl launch "$UDID" "$BUNDLE" -seedSampleData
+            sleep 6
+            xcrun simctl io "$UDID" screenshot "screenshots/calendar-$MODE.png"
+            xcrun simctl terminate "$UDID" "$BUNDLE" || true
+          done
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots/

@@ -10,7 +10,7 @@ struct TodoListView: View {
     @State private var today = Date.now
     @State private var selectedDate = Date.now
     @State private var showDatePicker = false
-    @State private var editorTarget: TodoEditorTarget?
+    @State private var editorTarget: EditorTarget<TodoItem>?
 
     private let calendar = AppCalendar.make()
 
@@ -53,7 +53,7 @@ struct TodoListView: View {
             }
         }
         .sheet(item: $editorTarget) { target in
-            TodoEditorView(todo: target.todo, defaultDate: selectedDate, calendar: calendar)
+            TodoEditorView(todo: target.model, defaultDate: selectedDate, calendar: calendar)
         }
         .sheet(isPresented: $showDatePicker) {
             TodoDatePickerSheet(date: $selectedDate, calendar: calendar) {
@@ -192,32 +192,15 @@ struct TodoListView: View {
     // MARK: - 할 일이 없을 때
 
     private var emptyCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(isToday ? "오늘 할 일을 추가해 보세요" : "이 날은 할 일이 없어요")
-                .font(.spoqa(17, .bold, relativeTo: .headline))
-                .foregroundStyle(Theme.soil)
-            Text(isToday
-                 ? "병원 예약, 택배 찾기처럼 하루짜리 일을 적어 두세요. 위의 날짜를 눌러 다른 날 할 일도 볼 수 있어요."
-                 : "아래 버튼으로 이 날 할 일을 미리 적어 둘 수 있어요.")
-                .font(.spoqa(14, .regular, relativeTo: .subheadline))
-                .foregroundStyle(Theme.stem)
-                .fixedSize(horizontal: false, vertical: true)
-            Button {
-                editorTarget = .new
-            } label: {
-                Label("할 일 추가", systemImage: "plus")
-                    .font(.spoqa(15, .bold, relativeTo: .body))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Capsule().fill(Theme.grass4))
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 4)
+        EmptyStateCard(
+            title: isToday ? "오늘 할 일을 추가해 보세요" : "이 날은 할 일이 없어요",
+            message: isToday
+                ? "병원 예약, 택배 찾기처럼 하루짜리 일을 적어 두세요. 위의 날짜를 눌러 다른 날 할 일도 볼 수 있어요."
+                : "아래 버튼으로 이 날 할 일을 미리 적어 둘 수 있어요.",
+            buttonLabel: "할 일 추가"
+        ) {
+            editorTarget = .new
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Theme.card))
     }
 }
 
@@ -257,24 +240,6 @@ private struct TodoDatePickerSheet: View {
         }
         .tint(Theme.grass4)
         .presentationDetents([.medium])
-    }
-}
-
-/// 시트에 무엇을 띄울지
-enum TodoEditorTarget: Identifiable {
-    case new
-    case edit(TodoItem)
-
-    var id: String {
-        switch self {
-        case .new: return "new"
-        case .edit(let todo): return "edit-\(todo.persistentModelID.hashValue)"
-        }
-    }
-
-    var todo: TodoItem? {
-        if case .edit(let todo) = self { return todo }
-        return nil
     }
 }
 

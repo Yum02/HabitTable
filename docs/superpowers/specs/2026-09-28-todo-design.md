@@ -33,7 +33,14 @@ HabitTable은 지금까지 반복 습관(`Habit`)만 다뤘다. 사용자는 습
 쓰는 `DayKey`/`HabitSchedulable`과는 무관하다. `Habit`과 관계도 맺지 않는다
 — 완전히 독립된 모델이다.
 
-`HabitTableApp.swift`의 `ModelContainer` 스키마에 `TodoItem.self`를 추가한다.
+`ModelContainer`를 만드는 모든 곳에 `TodoItem.self`를 추가한다. 빠뜨리면
+`@Query`가 런타임에 크래시하므로 아래 4곳을 모두 `for: Habit.self, TodoItem.self`
+형태로 바꾼다:
+
+- `HabitTableApp.swift` — 앱 본체 컨테이너
+- `ContentView.swift` — `#Preview`
+- `HabitBoardView.swift` — `#Preview`
+- `HabitEditorView.swift` — `#Preview`(`TodoEditorView` 미리보기도 같은 형태)
 
 ## 화면 구조
 

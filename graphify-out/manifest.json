@@ -1,0 +1,98 @@
+{
+  "HabitTableTests/HabitProgressTests.swift": {
+    "mtime": 1790524852.0,
+    "seen": 1790579412.3058712,
+    "ast_hash": "f106950fad7b097bc8da6692bef2b5f4",
+    "semantic_hash": "f106950fad7b097bc8da6692bef2b5f4"
+  },
+  "HabitTable/ContentView.swift": {
+    "mtime": 1790524987.0,
+    "seen": 1790579412.3058794,
+    "ast_hash": "7d8e292468f849e64317cc8decb7b119",
+    "semantic_hash": "7d8e292468f849e64317cc8decb7b119"
+  },
+  "HabitTable/Habit.swift": {
+    "mtime": 1790523559.0,
+    "seen": 1790579412.3058822,
+    "ast_hash": "00dffec9597ddf29dcd4c3855d87f7ab",
+    "semantic_hash": "00dffec9597ddf29dcd4c3855d87f7ab"
+  },
+  "HabitTable/HabitBoardView.swift": {
+    "mtime": 1790525886.9328566,
+    "seen": 1790579412.305884,
+    "ast_hash": "3311020a3ea8d0cb73d45a45a3fe1bf2",
+    "semantic_hash": "3311020a3ea8d0cb73d45a45a3fe1bf2"
+  },
+  "HabitTable/HabitEditorView.swift": {
+    "mtime": 1790524979.0,
+    "seen": 1790579412.305886,
+    "ast_hash": "d26313f74a36cdb62f8aa51181351e49",
+    "semantic_hash": "d26313f74a36cdb62f8aa51181351e49"
+  },
+  "HabitTable/HabitProgress.swift": {
+    "mtime": 1790524867.0,
+    "seen": 1790579412.3058877,
+    "ast_hash": "c0f70f017e806998d06e1dc7d46462d5",
+    "semantic_hash": "c0f70f017e806998d06e1dc7d46462d5"
+  },
+  "HabitTable/HabitTableApp.swift": {
+    "mtime": 1790524986.0,
+    "seen": 1790579412.3058896,
+    "ast_hash": "3174281bf3eaa25fad9416741634ab0e",
+    "semantic_hash": "3174281bf3eaa25fad9416741634ab0e"
+  },
+  "HabitTable/LawnView.swift": {
+    "mtime": 1790524956.0,
+    "seen": 1790579412.3058915,
+    "ast_hash": "6b40d6d721c1a9276d47316b5768bfc3",
+    "semantic_hash": "6b40d6d721c1a9276d47316b5768bfc3"
+  },
+  "HabitTable/Theme.swift": {
+    "mtime": 1790524878.0,
+    "seen": 1790579412.3058934,
+    "ast_hash": "ca26c94062bcdabffac5d36b7e4f891d",
+    "semantic_hash": "ca26c94062bcdabffac5d36b7e4f891d"
+  },
+  "HabitTable/WeekMatrixView.swift": {
+    "mtime": 1790524944.0,
+    "seen": 1790579412.305895,
+    "ast_hash": "cd09ec48f9c7c5e565f70e4f90b1a4ac",
+    "semantic_hash": "cd09ec48f9c7c5e565f70e4f90b1a4ac"
+  },
+  ".github/workflows/ios.yml": {
+    "mtime": 1790525246.0,
+    "seen": 1790579412.305897,
+    "ast_hash": "7dd05438a15c0ea0763385c6086312be",
+    "semantic_hash": "7dd05438a15c0ea0763385c6086312be"
+  },
+  "CLAUDE.md": {
+    "mtime": 1790525406.0,
+    "seen": 1790579412.305899,
+    "ast_hash": "9955ccae3d7a31489b2301d189ce3001",
+    "semantic_hash": "9955ccae3d7a31489b2301d189ce3001"
+  },
+  "HabitTable/SpoqaHanSansNeo-OFL.txt": {
+    "mtime": 1790524998.0,
+    "seen": 1790579412.3059008,
+    "ast_hash": "55719faa0112708e946b820b24b14097",
+    "semantic_hash": "55719faa0112708e946b820b24b14097"
+  },
+  "README.md": {
+    "mtime": 1790525411.0,
+    "seen": 1790579412.3059025,
+    "ast_hash": "c8c86749b83bfbb66c17ac07bdcbe46a",
+    "semantic_hash": "c8c86749b83bfbb66c17ac07bdcbe46a"
+  },
+  "docs/superpowers/specs/2026-09-28-todo-design.md": {
+    "mtime": 1790527381.566736,
+    "seen": 1790579412.3059044,
+    "ast_hash": "fba158b3aff7c6be92fc720441840465",
+    "semantic_hash": "fba158b3aff7c6be92fc720441840465"
+  },
+  "project.yml": {
+    "mtime": 1790521768.0,
+    "seen": 1790579412.3059058,
+    "ast_hash": "6e0d4ab30ba54633574250ec95895fa0",
+    "semantic_hash": "6e0d4ab30ba54633574250ec95895fa0"
+  }
+}

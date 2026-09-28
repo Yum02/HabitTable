@@ -3,80 +3,52 @@ import XCTest
 
 /// SwiftData 없이 정렬 규칙만 검사하기 위한 가짜 할 일
 private struct TestTodo: TodoSortable {
-    var name: String
+    var id: Int
     var isDone: Bool
     var createdAt: Date
 }
 
 final class TodoProgressTests: XCTestCase {
-    private func todo(_ name: String, done: Bool = false, at seconds: TimeInterval) -> TestTodo {
-        TestTodo(name: name, isDone: done, createdAt: Date(timeIntervalSince1970: seconds))
+    /// n이 클수록 나중에 만든 것
+    private func todo(_ id: Int, done: Bool = false, created: TimeInterval? = nil) -> TestTodo {
+        TestTodo(id: id, isDone: done, createdAt: Date(timeIntervalSince1970: created ?? TimeInterval(id)))
     }
 
-    private func names(_ items: [TestTodo]) -> [String] {
-        items.map { $0.name }
-    }
-
-    // MARK: - sorted
+    private func ids(_ items: [TestTodo]) -> [Int] { items.map(\.id) }
 
     func testEmptyAndSingle() {
-        XCTAssertTrue(TodoProgress.sorted([TestTodo]()).isEmpty)
-        XCTAssertEqual(names(TodoProgress.sorted([todo("a", at: 1)])), ["a"])
+        XCTAssertEqual(ids(TodoProgress.sorted([TestTodo]())), [])
+        XCTAssertEqual(ids(TodoProgress.sorted([todo(1)])), [1])
+        XCTAssertEqual(ids(TodoProgress.sorted([todo(1, done: true)])), [1])
     }
 
-    func testUndoneComeBeforeDone() {
-        let items = [
-            todo("done1", done: true, at: 1),
-            todo("open1", at: 2),
-            todo("done2", done: true, at: 3),
-            todo("open2", at: 4),
-        ]
-        XCTAssertEqual(names(TodoProgress.sorted(items)), ["open1", "open2", "done1", "done2"])
+    func testUndoneComesBeforeDone() {
+        let items = [todo(1, done: true), todo(2), todo(3, done: true), todo(4)]
+        XCTAssertEqual(ids(TodoProgress.sorted(items)), [2, 4, 1, 3])
     }
 
-    func testUndoneGroupIsOrderedByCreation() {
-        let items = [todo("c", at: 30), todo("a", at: 10), todo("b", at: 20)]
-        XCTAssertEqual(names(TodoProgress.sorted(items)), ["a", "b", "c"])
+    func testUndoneGroupSortedByCreation() {
+        let items = [todo(3), todo(1), todo(2)]
+        XCTAssertEqual(ids(TodoProgress.sorted(items)), [1, 2, 3])
     }
 
-    func testDoneGroupIsOrderedByCreation() {
-        let items = [
-            todo("c", done: true, at: 30),
-            todo("a", done: true, at: 10),
-            todo("b", done: true, at: 20),
-        ]
-        XCTAssertEqual(names(TodoProgress.sorted(items)), ["a", "b", "c"])
+    func testDoneGroupSortedByCreation() {
+        let items = [todo(3, done: true), todo(1, done: true), todo(2, done: true)]
+        XCTAssertEqual(ids(TodoProgress.sorted(items)), [1, 2, 3])
     }
 
-    func testSameCreatedAtKeepsInputOrder() {
-        // 만든 시각이 완전히 같아도 결과가 입력 순서대로 안정적이어야 한다
-        let items = [todo("first", at: 5), todo("second", at: 5), todo("third", at: 5)]
-        XCTAssertEqual(names(TodoProgress.sorted(items)), ["first", "second", "third"])
-    }
-
-    func testUndoingADoneItemRestoresItsOriginalSlot() {
-        var items = [todo("a", at: 1), todo("b", at: 2), todo("c", at: 3)]
+    /// 완료했다가 되돌린 항목은 맨 아래가 아니라 생성순 자리로 돌아온다
+    func testUncheckedItemReturnsToCreationPosition() {
+        var items = [todo(1), todo(2), todo(3)]
         items[0].isDone = true
-        XCTAssertEqual(names(TodoProgress.sorted(items)), ["b", "c", "a"])
+        XCTAssertEqual(ids(TodoProgress.sorted(items)), [2, 3, 1])
         items[0].isDone = false
-        XCTAssertEqual(names(TodoProgress.sorted(items)), ["a", "b", "c"])
+        XCTAssertEqual(ids(TodoProgress.sorted(items)), [1, 2, 3])
     }
 
-    // MARK: - normalizedTitle
-
-    func testNormalizedTitleTrimsWhitespaceAndNewlines() {
-        XCTAssertEqual(TodoProgress.normalizedTitle("  병원 예약 \n"), "병원 예약")
-    }
-
-    func testNormalizedTitleRejectsEmptyAndBlank() {
-        XCTAssertNil(TodoProgress.normalizedTitle(""))
-        XCTAssertNil(TodoProgress.normalizedTitle("   "))
-        XCTAssertNil(TodoProgress.normalizedTitle("\n\t \n"))
-    }
-
-    func testNormalizedTitleKeepsInnerSpacesAndLongText() {
-        let long = String(repeating: "택배 찾기 ", count: 60)
-        XCTAssertEqual(TodoProgress.normalizedTitle(long), long.trimmingCharacters(in: .whitespaces))
-        XCTAssertEqual(TodoProgress.normalizedTitle("a  b"), "a  b")
+    /// 생성 시각이 같으면 들어온 순서를 유지한다 (화면이 매번 같은 순서로 나오도록)
+    func testEqualCreationTimeKeepsInputOrder() {
+        let items = [todo(7, created: 100), todo(5, created: 100), todo(6, created: 100)]
+        XCTAssertEqual(ids(TodoProgress.sorted(items)), [7, 5, 6])
     }
 }

@@ -37,4 +37,14 @@ enum DayKey {
         let c = calendar.dateComponents([.year, .month, .day], from: date)
         return (c.year ?? 0) * 10_000 + (c.month ?? 0) * 100 + (c.day ?? 0)
     }
+
+    /// make의 반대: 20260928 → 그 날 0시. 없는 날짜(0, 13월, 2월 30일 등)는 nil.
+    static func date(_ key: Int, calendar: Calendar) -> Date? {
+        let year = key / 10_000, month = key / 100 % 100, day = key % 100
+        guard year > 0, (1...12).contains(month), (1...31).contains(day),
+              let date = calendar.date(from: DateComponents(year: year, month: month, day: day)),
+              make(date, calendar: calendar) == key   // 2월 30일처럼 Calendar가 넘겨 계산한 경우를 걸러낸다
+        else { return nil }
+        return date
+    }
 }

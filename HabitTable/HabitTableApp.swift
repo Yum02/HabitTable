@@ -12,7 +12,7 @@ struct HabitTableApp: App {
         let useSample = ProcessInfo.processInfo.arguments.contains("-seedSampleData")
         let config = ModelConfiguration(isStoredInMemoryOnly: useSample)
         do {
-            container = try ModelContainer(for: Habit.self, configurations: config)
+            container = try ModelContainer(for: Habit.self, TodoItem.self, configurations: config)
         } catch {
             fatalError("저장소를 열 수 없어요: \(error)")
         }
@@ -58,5 +58,21 @@ enum SampleData {
         habits[0].completedDays.append(DayKey.make(today, calendar: cal))
 
         habits.forEach { context.insert($0) }
+
+        // 할 일 탭 스크린샷용: 오늘 미완료 3개 + 완료 2개 (생성 시각을 달리해 순서가 고정됨)
+        // + 어제·내일 1개씩 (날짜 이동 확인용)
+        let todayKey = DayKey.make(today, calendar: cal)
+        let yesterdayKey = DayKey.make(cal.date(byAdding: .day, value: -1, to: today) ?? today, calendar: cal)
+        let tomorrowKey = DayKey.make(cal.date(byAdding: .day, value: 1, to: today) ?? today, calendar: cal)
+        let todos = [
+            TodoItem(title: "병원 예약 전화하기", day: todayKey, createdAt: today.addingTimeInterval(-500)),
+            TodoItem(title: "택배 찾기", day: todayKey, isDone: true, createdAt: today.addingTimeInterval(-400)),
+            TodoItem(title: "세탁소에 맡긴 코트 찾아오기", day: todayKey, createdAt: today.addingTimeInterval(-300)),
+            TodoItem(title: "부모님께 전화드리기", day: todayKey, isDone: true, createdAt: today.addingTimeInterval(-200)),
+            TodoItem(title: "이번 달 관리비 납부하기 — 계좌이체 후 영수증 사진을 찍어 가족 채팅방에 공유하기", day: todayKey, createdAt: today.addingTimeInterval(-100)),
+            TodoItem(title: "도서관 책 반납하기", day: yesterdayKey, isDone: true, createdAt: today.addingTimeInterval(-90)),
+            TodoItem(title: "치과 정기 검진 예약 확인", day: tomorrowKey, createdAt: today.addingTimeInterval(-80)),
+        ]
+        todos.forEach { context.insert($0) }
     }
 }

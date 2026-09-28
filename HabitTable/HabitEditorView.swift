@@ -159,5 +159,5 @@ struct WeekdayPicker: View {
 
 #Preview {
     HabitEditorView(habit: nil, calendar: AppCalendar.make(), nextSortOrder: 0)
-        .modelContainer(for: Habit.self, inMemory: true)
+        .modelContainer(for: [Habit.self, TodoItem.self], inMemory: true)
 }

@@ -90,6 +90,10 @@ jobs:
             sleep 6
             xcrun simctl io "$UDID" screenshot "screenshots/calendar-$MODE.png"
             xcrun simctl terminate "$UDID" "$BUNDLE" || true
+            xcrun simctl launch "$UDID" "$BUNDLE" -seedSampleData -startTodoTab
+            sleep 6
+            xcrun simctl io "$UDID" screenshot "screenshots/todo-$MODE.png"
+            xcrun simctl terminate "$UDID" "$BUNDLE" || true
           done
 
       - name: Upload screenshots

@@ -216,7 +216,7 @@ enum EditorTarget: Identifiable {
 @MainActor
 private let previewContainer: ModelContainer = {
     FontRegistrar.registerBundledFonts()
-    let container = try! ModelContainer(for: Habit.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let container = try! ModelContainer(for: Habit.self, TodoItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     SampleData.insert(into: container.mainContext)
     return container
 }()

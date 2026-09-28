@@ -1,20 +1,25 @@
 import SwiftUI
 import SwiftData
 
-/// 할 일 추가·수정 시트. HabitEditorView의 축소판(이름 입력 하나).
+/// 할 일 추가·수정 시트. HabitEditorView의 축소판(이름 + 날짜).
 struct TodoEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
 
     /// nil이면 새 할 일
     let todo: TodoItem?
+    let calendar: Calendar
 
     @State private var title: String
+    @State private var date: Date
     @FocusState private var titleFocused: Bool
 
-    init(todo: TodoItem?) {
+    /// defaultDate: 새 할 일의 날짜(목록에서 보고 있던 날). 수정이면 그 항목의 날짜를 쓴다.
+    init(todo: TodoItem?, defaultDate: Date, calendar: Calendar) {
         self.todo = todo
+        self.calendar = calendar
         _title = State(initialValue: todo?.title ?? "")
+        _date = State(initialValue: todo.flatMap { DayKey.date($0.day, calendar: calendar) } ?? defaultDate)
     }
 
     private var trimmedTitle: String {
@@ -41,6 +46,22 @@ struct TodoEditorView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 13)
                     .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.card))
+
+                Text("날짜")
+                    .font(.spoqa(13, .bold, relativeTo: .footnote))
+                    .foregroundStyle(Theme.stem)
+                    .padding(.horizontal, 4)
+                    .padding(.top, 16)
+                HStack {
+                    DatePicker("날짜", selection: $date, displayedComponents: .date)
+                        .labelsHidden()
+                        .environment(\.calendar, calendar)
+                        .environment(\.locale, Locale(identifier: "ko_KR"))
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.card))
                 Spacer(minLength: 0)
             }
             .padding(16)
@@ -67,16 +88,18 @@ struct TodoEditorView: View {
 
     private func save() {
         guard canSave else { return }
+        let day = DayKey.make(date, calendar: calendar)
         if let todo {
             todo.title = trimmedTitle
+            todo.day = day
         } else {
-            context.insert(TodoItem(title: trimmedTitle))
+            context.insert(TodoItem(title: trimmedTitle, day: day))
         }
         dismiss()
     }
 }
 
 #Preview {
-    TodoEditorView(todo: nil)
+    TodoEditorView(todo: nil, defaultDate: .now, calendar: AppCalendar.make())
         .modelContainer(for: TodoItem.self, inMemory: true)
 }

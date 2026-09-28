@@ -26,6 +26,22 @@ final class HabitProgressTests: XCTestCase {
         XCTAssertEqual(DayKey.make(date(2027, 1, 5), calendar: cal), 20270105)
     }
 
+    func testDayKeyDateRoundTrip() {
+        for (y, m, d) in [(2026, 9, 28), (2026, 1, 31), (2026, 2, 28), (2028, 2, 29), (2026, 12, 31), (2027, 1, 1)] {
+            let key = DayKey.make(date(y, m, d), calendar: cal)
+            let back = DayKey.date(key, calendar: cal)
+            XCTAssertEqual(back.map { DayKey.make($0, calendar: cal) }, key, "\(y)-\(m)-\(d)")
+            XCTAssertEqual(back, cal.startOfDay(for: date(y, m, d)), "\(y)-\(m)-\(d)")
+        }
+    }
+
+    func testDayKeyDateRejectsInvalidKeys() {
+        XCTAssertNil(DayKey.date(0, calendar: cal))
+        XCTAssertNil(DayKey.date(20261399, calendar: cal))   // 13월
+        XCTAssertNil(DayKey.date(20260230, calendar: cal))   // 2월 30일
+        XCTAssertNil(DayKey.date(20270229, calendar: cal))   // 평년 2월 29일
+    }
+
     // MARK: - 이번 주 (월~일)
 
     func testWeekStartsOnMondayMidweek() {

@@ -1,21 +1,36 @@
 import SwiftUI
 import SwiftData
 
-/// 할 일 탭: 미완료가 위, 완료(줄그음)가 아래
+/// 할 일 탭: 고른 날짜의 할 일. 미완료가 위, 완료(줄그음)가 아래
 struct TodoListView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var todos: [TodoItem]
 
+    @State private var today = Date.now
+    @State private var selectedDate = Date.now
+    @State private var showDatePicker = false
     @State private var editorTarget: TodoEditorTarget?
 
-    private var sortedTodos: [TodoItem] {
-        TodoProgress.sorted(todos)
+    private let calendar = AppCalendar.make()
+
+    private var selectedKey: Int {
+        DayKey.make(selectedDate, calendar: calendar)
+    }
+
+    private var isToday: Bool {
+        selectedKey == DayKey.make(today, calendar: calendar)
+    }
+
+    /// 고른 날짜의 할 일 (미완료 위 → 완료 아래, 각각 만든 순서)
+    private var dayTodos: [TodoItem] {
+        TodoProgress.items(on: selectedKey, from: todos)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            if todos.isEmpty {
+            if dayTodos.isEmpty {
                 emptyCard
                     .padding(.horizontal, 16)
                 Spacer(minLength: 0)
@@ -38,26 +53,103 @@ struct TodoListView: View {
             }
         }
         .sheet(item: $editorTarget) { target in
-            TodoEditorView(todo: target.todo)
+            TodoEditorView(todo: target.todo, defaultDate: selectedDate, calendar: calendar)
+        }
+        .sheet(isPresented: $showDatePicker) {
+            TodoDatePickerSheet(date: $selectedDate, calendar: calendar) {
+                selectedDate = .now
+            }
+        }
+        // 앱을 다시 열었을 때 날짜가 바뀌었으면 '오늘'을 갱신하고 오늘 목록으로 돌아온다
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                today = .now
+                selectedDate = .now
+            }
         }
     }
 
-    // MARK: - 머리글
+    // MARK: - 머리글 (날짜 이동)
 
     private var header: some View {
-        Text("할 일")
-            .font(.spoqa(26, .bold, relativeTo: .largeTitle))
-            .foregroundStyle(Theme.soil)
-            .padding(.horizontal, 16)
-            .padding(.top, 4)
-            .padding(.bottom, 12)
+        HStack(alignment: .center) {
+            Button {
+                showDatePicker = true
+            } label: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("할 일")
+                        .font(.spoqa(13, .bold, relativeTo: .footnote))
+                        .foregroundStyle(Theme.stem)
+                    HStack(spacing: 6) {
+                        Text(TodoProgress.dayTitle(for: selectedDate, today: today, calendar: calendar))
+                            .font(.spoqa(26, .bold, relativeTo: .largeTitle))
+                            .foregroundStyle(Theme.soil)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Theme.stem)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("날짜 선택")
+
+            Spacer()
+
+            if !isToday {
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) { selectedDate = today }
+                } label: {
+                    Text("오늘")
+                        .font(.spoqa(13, .bold, relativeTo: .footnote))
+                        .foregroundStyle(Theme.grass4)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Theme.grass0))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("오늘로 이동")
+            }
+
+            HStack(spacing: 4) {
+                Button {
+                    shift(by: -1)
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.soil)
+                        .frame(width: 32, height: 32)
+                }
+                .accessibilityLabel("전날")
+
+                Button {
+                    shift(by: 1)
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.soil)
+                        .frame(width: 32, height: 32)
+                }
+                .accessibilityLabel("다음 날")
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
+    }
+
+    private func shift(by days: Int) {
+        withAnimation(.snappy(duration: 0.2)) {
+            selectedDate = calendar.date(byAdding: .day, value: days, to: selectedDate) ?? selectedDate
+        }
     }
 
     // MARK: - 목록
 
     private var list: some View {
         List {
-            ForEach(sortedTodos) { todo in
+            ForEach(dayTodos) { todo in
                 row(todo)
                     .listRowBackground(Theme.card)
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -101,10 +193,12 @@ struct TodoListView: View {
 
     private var emptyCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("첫 할 일을 추가해 보세요")
+            Text(isToday ? "오늘 할 일을 추가해 보세요" : "이 날은 할 일이 없어요")
                 .font(.spoqa(17, .bold, relativeTo: .headline))
                 .foregroundStyle(Theme.soil)
-            Text("병원 예약, 택배 찾기처럼 하루짜리 일을 적어 두면 끝낼 때까지 남아 있어요.")
+            Text(isToday
+                 ? "병원 예약, 택배 찾기처럼 하루짜리 일을 적어 두세요. 위의 날짜를 눌러 다른 날 할 일도 볼 수 있어요."
+                 : "아래 버튼으로 이 날 할 일을 미리 적어 둘 수 있어요.")
                 .font(.spoqa(14, .regular, relativeTo: .subheadline))
                 .foregroundStyle(Theme.stem)
                 .fixedSize(horizontal: false, vertical: true)
@@ -124,6 +218,45 @@ struct TodoListView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
         .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Theme.card))
+    }
+}
+
+/// 날짜를 달력에서 골라 점프하는 시트. 날짜를 탭하면 바로 닫힌다.
+private struct TodoDatePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @Binding var date: Date
+    let calendar: Calendar
+    let onToday: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            DatePicker("날짜", selection: $date, displayedComponents: .date)
+                .datePickerStyle(.graphical)
+                .environment(\.calendar, calendar)
+                .environment(\.locale, Locale(identifier: "ko_KR"))
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .background(Theme.meadow.ignoresSafeArea())
+                .navigationTitle("날짜 선택")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("오늘") {
+                            onToday()
+                            dismiss()
+                        }
+                        .foregroundStyle(Theme.grass4)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("닫기") { dismiss() }
+                            .foregroundStyle(Theme.stem)
+                    }
+                }
+                .onChange(of: date) { _, _ in dismiss() }
+        }
+        .tint(Theme.grass4)
+        .presentationDetents([.medium])
     }
 }
 
@@ -158,7 +291,8 @@ private let todoPreviewContainer: ModelContainer = {
     FontRegistrar.registerBundledFonts()
     let container = try! ModelContainer(for: TodoItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     let now = Date.now
-    container.mainContext.insert(TodoItem(title: "병원 예약 전화하기", createdAt: now))
-    container.mainContext.insert(TodoItem(title: "택배 찾기", isDone: true, createdAt: now.addingTimeInterval(60)))
+    let key = DayKey.make(now, calendar: AppCalendar.make())
+    container.mainContext.insert(TodoItem(title: "병원 예약 전화하기", day: key, createdAt: now))
+    container.mainContext.insert(TodoItem(title: "택배 찾기", day: key, isDone: true, createdAt: now.addingTimeInterval(60)))
     return container
 }()

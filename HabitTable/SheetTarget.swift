@@ -38,7 +38,7 @@ struct EmptyStateCard: View {
             Button(action: action) {
                 Label(buttonLabel, systemImage: "plus")
                     .font(.spoqa(15, .bold, relativeTo: .body))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.onGrass)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(Capsule().fill(Theme.grass4))

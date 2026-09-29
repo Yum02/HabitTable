@@ -139,7 +139,7 @@ struct WeekdayPicker: View {
                         .font(.spoqa(15, .bold, relativeTo: .subheadline))
                         .frame(maxWidth: .infinity)
                         .frame(height: 40)
-                        .foregroundStyle(isOn ? Color.white : dayColor(day))
+                        .foregroundStyle(isOn ? Theme.onGrass : dayColor(day))
                         .background(
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .fill(isOn ? Theme.grass3 : Theme.grass0)

@@ -93,7 +93,7 @@ private struct DayHeader: View {
             Text(isFirstOfMonth ? "\(calendar.component(.month, from: date))/1" : "\(day)")
                 .font(.spoqa(isFirstOfMonth ? 11 : 13, .bold, relativeTo: .caption))
                 .monospacedDigit()
-                .foregroundStyle(isToday ? Color.white : (isFirstOfMonth ? Theme.grass4 : Theme.soil))
+                .foregroundStyle(isToday ? Theme.onGrass : (isFirstOfMonth ? Theme.grass4 : Theme.soil))
                 .frame(minWidth: 24, minHeight: 18)
                 .background {
                     if isToday {
@@ -135,7 +135,7 @@ struct CheckCell: View {
                         if state == .done {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 11, weight: .heavy))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Theme.onGrass)
                                 .transition(.scale.combined(with: .opacity))
                         }
                     }

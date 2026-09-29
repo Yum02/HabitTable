@@ -82,6 +82,12 @@ struct ReminderSettingsView: View {
             .padding(16)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(Theme.meadow.ignoresSafeArea())
+            .task {
+                // 설정 앱에서 권한을 끈 채로 스위치만 켜져 있으면 거부 안내를 보여준다
+                if enabled, await ReminderScheduler.authorizationStatus() == .denied {
+                    showDenied = true
+                }
+            }
             .navigationTitle("알림")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

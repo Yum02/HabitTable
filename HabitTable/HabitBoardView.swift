@@ -196,14 +196,16 @@ struct HabitBoardView: View {
         }
     }
 
-    /// 알림을 다시 예약한다. 이전 예약 작업이 남아 있으면 취소하고 새로 시작한다.
+    /// 알림을 다시 예약한다. 이전 예약 작업이 남아 있으면 취소하고, 그 작업이 끝난 뒤에 새로 시작한다.
     private func rescheduleReminders() {
-        rescheduleTask?.cancel()
+        let previous = rescheduleTask
+        previous?.cancel()
         let enabled = reminderEnabled
         let (hour, minute) = ReminderPlanner.hourMinute(fromMinutes: reminderMinutes)
         let days = ReminderPlanner.plannedDays(habits: habits, now: .now, hour: hour, minute: minute, calendar: calendar)
         let cal = calendar
         rescheduleTask = Task {
+            await previous?.value
             await ReminderScheduler.apply(enabled: enabled, dayKeys: days, hour: hour, minute: minute, calendar: cal)
         }
     }

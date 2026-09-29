@@ -30,6 +30,7 @@ HabitTable/
   TodoProgress.swift         할 일 규칙(순수 함수): 정렬, 날짜별 필터, 날짜 제목 ← 테스트 대상
   TodoListView.swift         "할 일" 탭: 날짜 이동(‹ ›·달력), 미완료 위/완료 아래, 스와이프 수정·삭제
   TodoEditorView.swift       할 일 추가·수정 시트 (이름 + 날짜)
+  SheetTarget.swift          시트 대상 enum(EditorTarget<Model>) + 빈 상태 카드(EmptyStateCard)
   ReminderPlanner.swift      알림 규칙(순수 함수): 예약할 날짜 계산, 시각 변환 ← 테스트 대상
   ReminderScheduler.swift    UNUserNotificationCenter 래퍼 + 설정 키(ReminderSettings)
   ReminderSettingsView.swift 알림 설정 시트 (켜기/끄기 + 시각)

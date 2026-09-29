@@ -254,7 +254,7 @@ private struct TodoDatePickerSheet: View {
 @MainActor
 private let todoPreviewContainer: ModelContainer = {
     FontRegistrar.registerBundledFonts()
-    let container = try! ModelContainer(for: TodoItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let container = try! ModelContainer(for: Habit.self, TodoItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     let now = Date.now
     let key = DayKey.make(now, calendar: AppCalendar.make())
     container.mainContext.insert(TodoItem(title: "병원 예약 전화하기", day: key, createdAt: now))

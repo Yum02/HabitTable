@@ -18,6 +18,11 @@ enum ReminderScheduler {
         return (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
     }
 
+    /// 현재 iOS 알림 권한 상태 (요청하지 않고 읽기만 한다).
+    static func authorizationStatus() async -> UNAuthorizationStatus {
+        await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
+
     /// 기존 예약을 모두 지우고, enabled이면 dayKeys 날짜마다 hour:minute에 알림을 다시 예약한다.
     /// 호출하는 쪽이 이전 호출을 취소할 수 있도록 중간마다 취소를 확인한다.
     static func apply(enabled: Bool, dayKeys: [Int], hour: Int, minute: Int, calendar: Calendar) async {

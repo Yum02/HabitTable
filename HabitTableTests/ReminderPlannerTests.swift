@@ -42,6 +42,29 @@ final class ReminderPlannerTests: XCTestCase {
                        [20260928, 20260929, 20260930])
     }
 
+    func testZeroDaysPlansNothing() {
+        let habit = ReminderTestHabit(weekdays: everyDay, createdDay: 20260901)
+        XCTAssertEqual(planned([habit], now: at(2026, 9, 28), days: 0), [])
+    }
+
+    func testHabitWithNoWeekdaysPlansNothing() {
+        let habit = ReminderTestHabit(weekdays: [], createdDay: 20260901)
+        XCTAssertEqual(planned([habit], now: at(2026, 9, 28)), [])
+    }
+
+    func testHabitCreatedAfterWindowPlansNothing() {
+        // 14일 창은 9/28~10/11. 11/1에 만든 습관은 창 안에 해당 날짜가 없다.
+        let habit = ReminderTestHabit(weekdays: everyDay, createdDay: 20261101)
+        XCTAssertEqual(planned([habit], now: at(2026, 9, 28)), [])
+    }
+
+    func testTodayAlarmPassedPlansOnlyFollowingDays() {
+        // 22시라 오늘(9/28) 21시 알림은 지났다. days: 3 → 9/29, 9/30만.
+        let habit = ReminderTestHabit(weekdays: everyDay, createdDay: 20260901)
+        XCTAssertEqual(planned([habit], now: at(2026, 9, 28, 22, 0), days: 3),
+                       [20260929, 20260930])
+    }
+
     // MARK: - 쉬는 요일
 
     func testOnlyScheduledWeekdaysArePlanned() {

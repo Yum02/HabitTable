@@ -24,7 +24,6 @@ struct HabitTableApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .preferredColorScheme(.light) // 다크 모드는 추후 작업
                 .tint(Theme.grass4)
         }
         .modelContainer(container)

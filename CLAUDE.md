@@ -30,12 +30,16 @@ HabitTable/
   TodoProgress.swift         할 일 규칙(순수 함수): 정렬, 날짜별 필터, 날짜 제목 ← 테스트 대상
   TodoListView.swift         "할 일" 탭: 날짜 이동(‹ ›·달력), 미완료 위/완료 아래, 스와이프 수정·삭제
   TodoEditorView.swift       할 일 추가·수정 시트 (이름 + 날짜)
+  ReminderPlanner.swift      알림 규칙(순수 함수): 예약할 날짜 계산, 시각 변환 ← 테스트 대상
+  ReminderScheduler.swift    UNUserNotificationCenter 래퍼 + 설정 키(ReminderSettings)
+  ReminderSettingsView.swift 알림 설정 시트 (켜기/끄기 + 시각)
   HabitProgress.swift        순수 계산 규칙(AppCalendar, 주/잔디 날짜, 달성률, 색 단계) ← 테스트 대상
   Theme.swift                색 토큰, Font.spoqa(...), FontRegistrar, Color(hex:)
   SpoqaHanSansNeo-*.ttf      글꼴 (SIL OFL, 라이선스 SpoqaHanSansNeo-OFL.txt)
 HabitTableTests/
   HabitProgressTests.swift   계산 규칙 단위 테스트
   TodoProgressTests.swift    할 일 정렬·날짜 규칙 테스트
+  ReminderPlannerTests.swift 알림 예약 날짜·시각 변환 테스트
 ```
 
 ## 규칙
@@ -48,6 +52,7 @@ HabitTableTests/
 - 할 일은 날짜별 목록이다(`TodoItem.day`, 이월 없음). 습관과 달리 미래 날짜에도 추가·체크할 수 있다.
 - 현재 라이트 모드 고정(`.preferredColorScheme(.light)`). 다크 모드는 미구현.
 - ModelContainer를 만드는 곳(앱·미리보기)에는 Habit.self와 TodoItem.self를 모두 넣는다. 빠지면 @Query가 런타임에 크래시한다.
+- 알림은 하루 한 번, 전체 공통 시각이다. 그날 체크할 습관이 남아 있을 때만 앞으로 14일치를 예약하고, 습관이 바뀌거나 앱이 켜질 때마다 전부 지우고 다시 예약한다. 알림 권한은 설정 시트의 스위치를 켤 때만 요청한다.
 - 스크린샷 실행 인자: `-seedSampleData`(샘플 데이터), `-startTodoTab`(시작 탭을 할 일로).
 
 ## 확정된 디자인 (사용자 승인)
@@ -60,4 +65,4 @@ HabitTableTests/
 
 ## 작업 방식
 - 사용자는 기능을 **하나씩** 설계 → 승인 → 구현하길 원한다.
-- 다음 후보: 알림, 다크 모드.
+- 다음 후보: 다크 모드.

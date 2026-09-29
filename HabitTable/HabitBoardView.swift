@@ -59,7 +59,15 @@ struct HabitBoardView: View {
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    showReminderSettings = true
+                } label: {
+                    Image(systemName: reminderEnabled ? "bell.fill" : "bell")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .accessibilityLabel("알림 설정")
+
                 Button {
                     editorTarget = .new
                 } label: {
@@ -75,6 +83,9 @@ struct HabitBoardView: View {
                 calendar: calendar,
                 nextSortOrder: (habits.map(\.sortOrder).max() ?? -1) + 1
             )
+        }
+        .sheet(isPresented: $showReminderSettings) {
+            ReminderSettingsView()
         }
         .confirmationDialog(
             "'\(habitToDelete?.name ?? "")' 습관을 삭제할까요?",
@@ -96,8 +107,14 @@ struct HabitBoardView: View {
             if phase == .active {
                 today = .now
                 weekOffset = 0
+                rescheduleReminders()
             }
         }
+        // 첫 진입, 그리고 알림에 영향을 주는 값이 바뀔 때마다 알림을 다시 예약한다
+        .task { rescheduleReminders() }
+        .onChange(of: reminderSignature) { _, _ in rescheduleReminders() }
+        .onChange(of: reminderEnabled) { _, _ in rescheduleReminders() }
+        .onChange(of: reminderMinutes) { _, _ in rescheduleReminders() }
     }
 
     // MARK: - 머리글
@@ -176,6 +193,18 @@ struct HabitBoardView: View {
         let key = DayKey.make(date, calendar: calendar)
         withAnimation(.snappy(duration: 0.2)) {
             habit.completedDays = HabitProgress.toggled(habit.completedDays, key: key)
+        }
+    }
+
+    /// 알림을 다시 예약한다. 이전 예약 작업이 남아 있으면 취소하고 새로 시작한다.
+    private func rescheduleReminders() {
+        rescheduleTask?.cancel()
+        let enabled = reminderEnabled
+        let (hour, minute) = ReminderPlanner.hourMinute(fromMinutes: reminderMinutes)
+        let days = ReminderPlanner.plannedDays(habits: habits, now: .now, hour: hour, minute: minute, calendar: calendar)
+        let cal = calendar
+        rescheduleTask = Task {
+            await ReminderScheduler.apply(enabled: enabled, dayKeys: days, hour: hour, minute: minute, calendar: cal)
         }
     }
 }

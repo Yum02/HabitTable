@@ -23,7 +23,7 @@
 ## Review Focus
 
 1. **연말을 걸친 주**(2026-12-28 월 ~ 2027-01-03 일)에서도 이번 주 횟수가 한 주로 이어져야 한다 → Task 1 `testWeeklyCountAcrossYearEnd`.
-2. **주 중간에 만든 습관**은 만든 날 이전 기록(요일 방식이던 시절 기록 포함)을 이번 주 횟수에 넣지 않는다 → Task 1 `testWeeklyCountExcludesBeforeCreation`.
+2. **주 중간에 만든 습관**은 만든 날 이전 기록을 이번 주 횟수에 넣지 않는다 → Task 1 `testWeeklyCountExcludesBeforeCreation`. 반대로 **요일 방식에서 주 n회로 바꾼 습관**은 `createdDay`가 그대로이므로, 만든 날 이후 요일 방식일 때 체크한 기록도 센다(스펙: "체크 기록은 그대로 둔다"). 그런 기록을 거르는 코드를 넣지 않는다 → Task 1 `testWeeklyCountIncludesChecksFromWeekdayEra`.
 3. **같은 날짜가 `completedDays`에 두 번** 들어가 있어도 한 번만 센다 → Task 1 `testWeeklyCountIgnoresDuplicateKeys`.
 4. **주 n회 습관만 있고 한 번도 안 한 주**는 잔디가 "할 습관 없음"이고 평균 달성률이 nil이다(0%로 떨어지지 않는다) → Task 1 `testWeeklyOnlyUncheckedWeekHasNoAverage`.
 5. **일요일에 목표를 채우면** 다음 날(월요일)부터 알림이 다시 예약된다 → Task 2 `testWeeklyGoalMetOnSundayResumesOnMonday`.
@@ -71,8 +71,10 @@ private struct TestHabit: HabitSchedulable {
 ```swift
     // MARK: - 주 n회
 
+    /// 실제 앱처럼 weekdays는 월~일 전체로 둔다(편집 시트 기본값·샘플 데이터와 같음).
+    /// 그래야 isScheduled의 `weeklyTarget == nil` 조건이 빠졌을 때 테스트가 실패한다.
     private func weekly(_ target: Int, created: Int = 20260901, done: [Int] = []) -> TestHabit {
-        TestHabit(weekdays: [], createdDay: created, completedDays: done, weeklyTarget: target)
+        TestHabit(weekdays: Array(1...7), createdDay: created, completedDays: done, weeklyTarget: target)
     }
 
     func testWeeklyHabitIsNeverScheduledButCheckableAfterCreation() {
@@ -130,6 +132,13 @@ private struct TestHabit: HabitSchedulable {
     func testWeeklyCountExcludesBeforeCreation() {
         let habit = weekly(3, created: 20260930, done: [20260928, 20260930])
         XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 10, 1), calendar: cal), 1)
+    }
+
+    func testWeeklyCountIncludesChecksFromWeekdayEra() {
+        // 월요일 습관(요일 방식)으로 9/28에 체크한 뒤 주 3회로 바꿈. createdDay는 그대로라 그 체크도 센다.
+        let habit = TestHabit(weekdays: [2], createdDay: 20260901,
+                              completedDays: [20260928, 20260930], weeklyTarget: 3)
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 10, 1), calendar: cal), 2)
     }
 
     func testWeeklyCountAllowsOverTarget() {
@@ -308,8 +317,9 @@ git commit -m "주 n회 목표 데이터와 계산 규칙 추가, 테스트 보�
 ```swift
     // MARK: - 주 n회
 
+    /// 실제 앱처럼 weekdays는 월~일 전체로 둔다. 요일만 보고 예약하면 실패하도록.
     private func weekly(_ target: Int, done: [Int] = []) -> ReminderTestHabit {
-        ReminderTestHabit(weekdays: [], createdDay: 20260901, completedDays: done, weeklyTarget: target)
+        ReminderTestHabit(weekdays: Array(1...7), createdDay: 20260901, completedDays: done, weeklyTarget: target)
     }
 
     func testWeeklyBeforeGoalPlansEveryDay() {
@@ -436,7 +446,7 @@ git commit -m "알림 예약에 주 n회 목표 반영"
                             WeeklyBadge(target: target, count: weeklyCount(of: habit))
                         }
                     }
-                    .frame(width: nameWidth, height: 34, alignment: .leading)
+                    .frame(width: nameWidth, minHeight: 34, alignment: .leading)   // 기본 크기에선 34, 큰 글자에선 늘어남
                     .padding(.leading, 4)
                     .contentShape(Rectangle())
                     .contextMenu {

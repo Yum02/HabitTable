@@ -44,7 +44,10 @@ struct WeekMatrixView: View {
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(nameAccessibilityLabel(habit))
-                    .accessibilityHint("길게 누르면 수정하거나 삭제할 수 있어요")
+                    .accessibilityHint("길게 누르거나 동작에서 수정·삭제할 수 있어요")
+                    // 요소를 새로 묶으면 contextMenu의 접근성 동작이 빠질 수 있어 직접 단다
+                    .accessibilityAction(named: "수정") { onEdit(habit) }
+                    .accessibilityAction(named: "삭제") { onDelete(habit) }
 
                     ForEach(week, id: \.self) { date in
                         CheckCell(state: state(of: habit, on: date)) {

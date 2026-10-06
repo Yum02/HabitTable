@@ -265,4 +265,132 @@ final class HabitProgressTests: XCTestCase {
         XCTAssertEqual(HabitProgress.weeklySummary(target: 3, count: 2), "주 3회 · 2/3")
         XCTAssertEqual(HabitProgress.weeklySummary(target: 2, count: 4), "주 2회 · 4/2")
     }
+
+    // MARK: - 연속 기록
+
+    private func streak(_ habit: TestHabit, today: Date) -> Int {
+        HabitProgress.streak(habit, today: today, calendar: cal)
+    }
+
+    /// 월·수·금 습관
+    private func mwf(created: Int = 20260901, _ done: [Int]) -> TestHabit {
+        TestHabit(weekdays: [2, 4, 6], createdDay: created, completedDays: done)
+    }
+
+    // 주 n회 습관은 파일에 이미 있는 weekly(_:created:done:) 헬퍼를 쓴다
+
+    func testStreakDailySkipsRestDays() {
+        // 9/28(월) 9/30(수) 10/2(금) 10/5(월) 완료, 오늘 10/6(화)은 쉬는 날
+        let h = mwf([20260928, 20260930, 20261002, 20261005])
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 4)
+    }
+
+    func testStreakDailyKeepsWhenTodayUndone() {
+        // 오늘 10/7(수) 아직 안 함 → 어제까지 4 유지, 하면 5
+        var h = mwf([20260928, 20260930, 20261002, 20261005])
+        XCTAssertEqual(streak(h, today: date(2026, 10, 7)), 4)
+        h.completedDays.append(20261007)
+        XCTAssertEqual(streak(h, today: date(2026, 10, 7)), 5)
+    }
+
+    func testStreakDailyBreaksOnMissedDay() {
+        // 9/30(수)을 놓침 → 10/5, 10/2 두 번
+        XCTAssertEqual(streak(mwf([20260928, 20261002, 20261005]), today: date(2026, 10, 5)), 2)
+        // 바로 전 해야 하는 날(10/5)을 놓치고 오늘 10/7 완료 → 1
+        XCTAssertEqual(streak(mwf([20261002, 20261007]), today: date(2026, 10, 7)), 1)
+        // 아무것도 안 함 → 0
+        XCTAssertEqual(streak(mwf([]), today: date(2026, 10, 7)), 0)
+    }
+
+    func testStreakDailyStopsAtCreatedDay() {
+        // 10/2에 만듦 → 그 전 기록(9/28, 9/30)은 세지 않음
+        let h = mwf(created: 20261002, [20260928, 20260930, 20261002, 20261005])
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 2)
+    }
+
+    func testStreakDailyIgnoresRestDayChecks() {
+        // 9/29(화, 쉬는 날) 체크는 더하지 않음
+        XCTAssertEqual(streak(mwf([20260928, 20260929, 20260930]), today: date(2026, 9, 30)), 2)
+        // 오늘 10/6(화, 쉬는 날)이 체크돼 있어도 +1 하지 않음
+        XCTAssertEqual(streak(mwf([20261005, 20261006]), today: date(2026, 10, 6)), 1)
+    }
+
+    func testStreakDailyAcrossYearEnd() {
+        let h = TestHabit(weekdays: Array(1...7), createdDay: 20261201,
+                          completedDays: [20261230, 20261231, 20270101])
+        XCTAssertEqual(streak(h, today: date(2027, 1, 1)), 3)
+    }
+
+    func testStreakDailyEmptyWeekdaysIsZero() {
+        let h = TestHabit(weekdays: [], createdDay: 20260901, completedDays: [20261005, 20261006])
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 0)
+    }
+
+    func testStreakWeeklyCountsMetWeeks() {
+        // 주 2회: 9/21 주 2번, 9/28 주 2번, 이번 주(10/5~) 0번 → 이번 주는 건너뛰고 2
+        var h = weekly(2, created: 20260921, done: [20260922, 20260924, 20260929, 20261003])
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 2)
+        // 이번 주도 채우면 3
+        h.completedDays += [20261005, 20261006]
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 3)
+    }
+
+    func testStreakWeeklyBreaksOnMissedWeek() {
+        // 9/28 주는 1번뿐 → 거기서 멈춤
+        var h = weekly(2, created: 20260921, done: [20260922, 20260924, 20260929])
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 0)
+        h.completedDays += [20261005, 20261006]
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 1)
+    }
+
+    func testStreakWeeklyMondayBoundary() {
+        // 10/4(일)과 10/5(월)는 다른 주: 9/28 주 2번(9/29, 10/4), 이번 주 1번 → 1
+        let h = weekly(2, created: 20260928, done: [20260929, 20261004, 20261005])
+        XCTAssertEqual(streak(h, today: date(2026, 10, 5)), 1)
+    }
+
+    func testStreakWeeklyAcrossYearEnd() {
+        // 12/28(월)과 2027-01-03(일)은 같은 주
+        let h = weekly(2, created: 20261201, done: [20261228, 20270103])
+        XCTAssertEqual(streak(h, today: date(2027, 1, 3)), 1)
+    }
+
+    func testStreakWeeklyCreatedMidWeek() {
+        // 10/4(일)에 만듦: 그 주는 10/4 하루뿐이라 2번을 못 채움 → 연속은 이번 주부터
+        // 만든 날 이전 기록(9/22, 9/23)은 세지 않음
+        var h = weekly(2, created: 20261004, done: [20260922, 20260923, 20261004, 20261005, 20261006])
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 1)
+        // 이번 주도 아직 못 채웠으면 0
+        h.completedDays = [20260922, 20260923, 20261004, 20261005]
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 0)
+    }
+
+    func testStreakRecalculatesAfterSettingsChange() {
+        // 같은 기록, 요일 방식(매일) ↔ 주 2회: 단위가 바뀌어 다시 계산
+        var h = TestHabit(weekdays: Array(1...7), createdDay: 20260901, completedDays: [20261005, 20261006])
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 2)   // 2일
+        h.weeklyTarget = 2
+        XCTAssertEqual(streak(h, today: date(2026, 10, 6)), 1)   // 1주
+
+        // 요일 월·수·금 → 화·목: 과거 날짜도 새 요일로 판정
+        var d = mwf([20260928, 20260930, 20261002, 20261005])
+        XCTAssertEqual(streak(d, today: date(2026, 10, 5)), 4)
+        d.weekdays = [3, 5]
+        XCTAssertEqual(streak(d, today: date(2026, 10, 5)), 0)
+
+        // 목표 2회 → 3회: 지난주들도 3회 기준
+        var w = weekly(2, created: 20260921, done: [20260922, 20260924, 20260929, 20261001])
+        XCTAssertEqual(streak(w, today: date(2026, 10, 6)), 2)
+        w.weeklyTarget = 3
+        XCTAssertEqual(streak(w, today: date(2026, 10, 6)), 0)
+    }
+
+    func testStreakBadgeAndSpoken() {
+        XCTAssertNil(HabitProgress.streakBadge(0))
+        XCTAssertNil(HabitProgress.streakBadge(1))
+        XCTAssertEqual(HabitProgress.streakBadge(2), "🌱2")
+        XCTAssertEqual(HabitProgress.streakBadge(12), "🌱12")
+        XCTAssertEqual(HabitProgress.streakSpoken(5, weekly: false), "5일 연속")
+        XCTAssertEqual(HabitProgress.streakSpoken(3, weekly: true), "3주 연속")
+    }
 }

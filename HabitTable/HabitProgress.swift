@@ -122,6 +122,67 @@ enum HabitProgress {
         "주 \(target)회 · \(count)/\(target)"
     }
 
+    // MARK: - 연속 기록
+
+    /// 오늘 기준 연속 기록. 요일 습관은 해야 하는 날 수, 주 n회 습관은 목표를 채운 주 수.
+    /// 오늘(이번 주)이 아직 미완료(미달)면 끊지 않고 건너뛴다. 만든 날 이전은 보지 않는다.
+    static func streak<H: HabitSchedulable>(_ habit: H, today: Date, calendar: Calendar) -> Int {
+        habit.weeklyTarget == nil
+            ? dailyStreak(habit, today: today, calendar: calendar)
+            : weeklyStreak(habit, today: today, calendar: calendar)
+    }
+
+    /// 오늘부터 하루씩 거꾸로: 쉬는 요일은 건너뛰고, 해야 하는 날을 놓치면 멈춘다
+    private static func dailyStreak<H: HabitSchedulable>(_ habit: H, today: Date, calendar: Calendar) -> Int {
+        let done = Set(habit.completedDays)
+        var day = calendar.startOfDay(for: today)
+        var isToday = true
+        var count = 0
+        while DayKey.make(day, calendar: calendar) >= habit.createdDay {
+            if isScheduled(habit, on: day, calendar: calendar) {
+                if done.contains(DayKey.make(day, calendar: calendar)) {
+                    count += 1
+                } else if !isToday {
+                    break
+                }
+            }
+            isToday = false
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: day) else { break }
+            day = previous
+        }
+        return count
+    }
+
+    /// 이번 주부터 한 주씩 거꾸로: 목표를 못 채운 주에서 멈춘다
+    private static func weeklyStreak<H: HabitSchedulable>(_ habit: H, today: Date, calendar: Calendar) -> Int {
+        guard let target = habit.weeklyTarget,
+              var monday = weekDates(containing: today, calendar: calendar).first else { return 0 }
+        var isThisWeek = true
+        var count = 0
+        while let sunday = calendar.date(byAdding: .day, value: 6, to: monday),
+              DayKey.make(sunday, calendar: calendar) >= habit.createdDay {
+            if weeklyCount(habit, weekContaining: monday, calendar: calendar) >= target {
+                count += 1
+            } else if !isThisWeek {
+                break
+            }
+            isThisWeek = false
+            guard let previous = calendar.date(byAdding: .day, value: -7, to: monday) else { break }
+            monday = previous
+        }
+        return count
+    }
+
+    /// 2 이상이면 "🌱5", 아니면 nil (배지를 숨긴다)
+    static func streakBadge(_ count: Int) -> String? {
+        count >= 2 ? "🌱\(count)" : nil
+    }
+
+    /// 접근성용 "5일 연속" / "3주 연속"
+    static func streakSpoken(_ count: Int, weekly: Bool) -> String {
+        "\(count)\(weekly ? "주" : "일") 연속"
+    }
+
     // MARK: - 색 단계
 
     static func level(for progress: DayProgress, date: Date, today: Date, calendar: Calendar) -> ProgressLevel {

@@ -42,6 +42,7 @@ enum SampleData {
             Habit(name: "물 2L 마시기", weekdays: Array(1...7), createdDay: startKey, sortOrder: 0),
             Habit(name: "운동 30분", weekdays: [2, 4, 6], createdDay: startKey, sortOrder: 1),
             Habit(name: "독서 20쪽", weekdays: [2, 3, 4, 5, 6], createdDay: startKey, sortOrder: 2),
+            Habit(name: "명상 10분", weekdays: Array(1...7), createdDay: startKey, sortOrder: 3, weeklyTarget: 3),
         ]
 
         // 지난 45일 동안 들쭉날쭉한 기록 (고정 규칙이라 매번 같은 모양)
@@ -49,7 +50,8 @@ enum SampleData {
             guard let day = cal.date(byAdding: .day, value: -offset, to: today) else { continue }
             let key = DayKey.make(day, calendar: cal)
             for (index, habit) in habits.enumerated()
-            where HabitProgress.isScheduled(habit, on: day, calendar: cal) && (offset * 7 + index * 3) % 5 != 0 {
+            where HabitProgress.isCheckable(habit, on: day, calendar: cal)
+                && (habit.weeklyTarget == nil ? (offset * 7 + index * 3) % 5 != 0 : offset % 3 == 0) {
                 habit.completedDays.append(key)
             }
         }

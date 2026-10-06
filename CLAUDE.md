@@ -50,6 +50,7 @@ HabitTableTests/
   테스트는 SwiftData 없이 `HabitSchedulable`을 따르는 가짜 구조체로 작성한다.
 - 색은 `Theme`의 토큰만 쓴다. 글꼴은 `.font(.spoqa(크기, .bold, relativeTo: .body))`.
 - 체크는 오늘까지만 가능, 습관은 `createdDay` 이후만 계산.
+- 습관은 요일 방식(`weeklyTarget == nil`) 또는 주 n회(`weeklyTarget` 1~6, 월~일 기준). 주 n회는 `isScheduled`가 항상 false이고, 체크 칸은 `isCheckable`, 하루 달성률은 체크한 날만(`countsToward`), 알림은 그 주 목표 전·그날 미완료일 때(`isWeeklyPending`).
 - 할 일은 날짜별 목록이다(`TodoItem.day`, 이월 없음). 습관과 달리 미래 날짜에도 추가·체크할 수 있다.
 - 현재 라이트 모드 고정(`.preferredColorScheme(.light)`). 다크 모드는 미구현.
 - ModelContainer를 만드는 곳(앱·미리보기)에는 Habit.self와 TodoItem.self를 모두 넣는다. 빠지면 @Query가 런타임에 크래시한다.

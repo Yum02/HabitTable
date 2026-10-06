@@ -13,6 +13,8 @@ struct HabitEditorView: View {
 
     @State private var name: String
     @State private var weekdays: Set<Int>
+    @State private var isWeekly: Bool
+    @State private var weeklyTarget: Int
     @FocusState private var nameFocused: Bool
 
     init(habit: Habit?, calendar: Calendar, nextSortOrder: Int) {
@@ -21,6 +23,9 @@ struct HabitEditorView: View {
         self.nextSortOrder = nextSortOrder
         _name = State(initialValue: habit?.name ?? "")
         _weekdays = State(initialValue: Set(habit?.weekdays ?? Array(1...7)))
+        _isWeekly = State(initialValue: habit?.weeklyTarget != nil)
+        let range = HabitProgress.weeklyTargetRange
+        _weeklyTarget = State(initialValue: min(max(habit?.weeklyTarget ?? 3, range.lowerBound), range.upperBound))
     }
 
     private var trimmedName: String {
@@ -28,7 +33,7 @@ struct HabitEditorView: View {
     }
 
     private var canSave: Bool {
-        !trimmedName.isEmpty && !weekdays.isEmpty
+        !trimmedName.isEmpty && (isWeekly || !weekdays.isEmpty)
     }
 
     var body: some View {
@@ -46,19 +51,43 @@ struct HabitEditorView: View {
                             .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.card))
                     }
 
-                    section(title: "반복 요일", trailing: {
-                        Button("매일") { weekdays = Set(1...7) }
-                            .font(.spoqa(13, .bold, relativeTo: .footnote))
-                            .foregroundStyle(Theme.grass4)
+                    section(title: "반복", trailing: {
+                        if !isWeekly {
+                            Button("매일") { weekdays = Set(1...7) }
+                                .font(.spoqa(13, .bold, relativeTo: .footnote))
+                                .foregroundStyle(Theme.grass4)
+                        }
                     }) {
                         VStack(alignment: .leading, spacing: 8) {
-                            WeekdayPicker(selection: $weekdays)
-                                .padding(12)
+                            Picker("반복 방식", selection: $isWeekly) {
+                                Text("요일 정하기").tag(false)
+                                Text("주 n회").tag(true)
+                            }
+                            .pickerStyle(.segmented)
+
+                            if isWeekly {
+                                Stepper(value: $weeklyTarget, in: HabitProgress.weeklyTargetRange) {
+                                    Text("주 \(weeklyTarget)회")
+                                        .font(.spoqa(17, .bold, relativeTo: .body))
+                                        .foregroundStyle(Theme.soil)
+                                        .monospacedDigit()
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
                                 .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.card))
-                            Text(weekdays.isEmpty ? "요일을 하나 이상 골라 주세요" : HabitProgress.weekdaySummary(Array(weekdays)))
-                                .font(.spoqa(13, .medium, relativeTo: .footnote))
-                                .foregroundStyle(weekdays.isEmpty ? Theme.sunday : Theme.stem)
-                                .padding(.leading, 4)
+                                Text("일주일에 \(weeklyTarget)번, 아무 요일이나")
+                                    .font(.spoqa(13, .medium, relativeTo: .footnote))
+                                    .foregroundStyle(Theme.stem)
+                                    .padding(.leading, 4)
+                            } else {
+                                WeekdayPicker(selection: $weekdays)
+                                    .padding(12)
+                                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.card))
+                                Text(weekdays.isEmpty ? "요일을 하나 이상 골라 주세요" : HabitProgress.weekdaySummary(Array(weekdays)))
+                                    .font(.spoqa(13, .medium, relativeTo: .footnote))
+                                    .foregroundStyle(weekdays.isEmpty ? Theme.sunday : Theme.stem)
+                                    .padding(.leading, 4)
+                            }
                         }
                     }
                 }
@@ -105,15 +134,18 @@ struct HabitEditorView: View {
     private func save() {
         guard canSave else { return }
         let days = weekdays.sorted()
+        let target: Int? = isWeekly ? weeklyTarget : nil
         if let habit {
             habit.name = trimmedName
             habit.weekdays = days
+            habit.weeklyTarget = target
         } else {
             context.insert(Habit(
                 name: trimmedName,
                 weekdays: days,
                 createdDay: DayKey.make(.now, calendar: calendar),
-                sortOrder: nextSortOrder
+                sortOrder: nextSortOrder,
+                weeklyTarget: target
             ))
         }
         dismiss()

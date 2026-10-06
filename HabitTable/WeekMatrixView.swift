@@ -23,13 +23,25 @@ struct WeekMatrixView: View {
             }
 
             ForEach(habits) { habit in
+                let streakCount = streak(of: habit)
                 GridRow {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(habit.name)
-                            .font(.spoqa(12.5, .bold, relativeTo: .subheadline))
-                            .foregroundStyle(Theme.soil)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+                        HStack(spacing: 2) {
+                            Text(habit.name)
+                                .font(.spoqa(12.5, .bold, relativeTo: .subheadline))
+                                .foregroundStyle(Theme.soil)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            if let badge = HabitProgress.streakBadge(streakCount) {
+                                Text(badge)
+                                    .font(.spoqa(11, .bold, relativeTo: .caption2))
+                                    .foregroundStyle(Theme.grass4)
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                                    .fixedSize()          // 배지는 줄이지 않고, 이름이 먼저 말줄임
+                                    .layoutPriority(1)
+                            }
+                        }
                         if let target = habit.weeklyTarget {
                             WeeklyBadge(target: target, count: weeklyCount(of: habit))
                         }
@@ -43,7 +55,7 @@ struct WeekMatrixView: View {
                         Button(role: .destructive) { onDelete(habit) } label: { Label("삭제", systemImage: "trash") }
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(nameAccessibilityLabel(habit))
+                    .accessibilityLabel(nameAccessibilityLabel(habit, streak: streakCount))
                     .accessibilityHint("길게 누르거나 동작에서 수정·삭제할 수 있어요")
                     // 요소를 새로 묶으면 contextMenu의 접근성 동작이 빠질 수 있어 직접 단다
                     .accessibilityAction(named: "수정") { onEdit(habit) }
@@ -76,9 +88,20 @@ struct WeekMatrixView: View {
         HabitProgress.weeklyCount(habit, weekContaining: week.first ?? today, calendar: calendar)
     }
 
-    private func nameAccessibilityLabel(_ habit: Habit) -> String {
-        guard let target = habit.weeklyTarget else { return habit.name }
-        return "\(habit.name), 주 \(target)회 중 \(weeklyCount(of: habit))회 완료"
+    /// 오늘 기준 연속 기록 (보고 있는 주와 관계없음)
+    private func streak(of habit: Habit) -> Int {
+        HabitProgress.streak(habit, today: today, calendar: calendar)
+    }
+
+    private func nameAccessibilityLabel(_ habit: Habit, streak count: Int) -> String {
+        var parts = [habit.name]
+        if let target = habit.weeklyTarget {
+            parts.append("주 \(target)회 중 \(weeklyCount(of: habit))회 완료")
+        }
+        if HabitProgress.streakBadge(count) != nil {
+            parts.append(HabitProgress.streakSpoken(count, weekly: habit.weeklyTarget != nil))
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func accessibilityLabel(_ habit: Habit, _ date: Date) -> String {

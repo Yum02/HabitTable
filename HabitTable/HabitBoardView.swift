@@ -29,7 +29,7 @@ struct HabitBoardView: View {
     /// 알림 예약에 영향을 주는 값만 모은 지문. 이게 바뀌면 다시 예약한다.
     /// (체크/해제, 습관 추가·수정·삭제 모두 여기 반영된다)
     private var reminderSignature: [String] {
-        habits.map { "\($0.createdDay)|\($0.weekdays)|\($0.completedDays)" }
+        habits.map { "\($0.createdDay)|\($0.weekdays)|\($0.weeklyTarget ?? 0)|\($0.completedDays)" }
     }
 
     var body: some View {

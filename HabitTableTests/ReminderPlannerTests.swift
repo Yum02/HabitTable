@@ -146,6 +146,44 @@ final class ReminderPlannerTests: XCTestCase {
                        [20261230, 20261231, 20270101, 20270102])
     }
 
+    // MARK: - 주 n회
+
+    /// 실제 앱처럼 weekdays는 월~일 전체로 둔다. 요일만 보고 예약하면 실패하도록.
+    private func weekly(_ target: Int, done: [Int] = []) -> ReminderTestHabit {
+        ReminderTestHabit(weekdays: Array(1...7), createdDay: 20260901, completedDays: done, weeklyTarget: target)
+    }
+
+    func testWeeklyBeforeGoalPlansEveryDay() {
+        let expected = [20260928, 20260929, 20260930] + Array(20261001...20261011)
+        XCTAssertEqual(planned([weekly(3)], now: at(2026, 9, 28)), expected)
+    }
+
+    func testWeeklyGoalMetSkipsRestOfWeek() {
+        // 9/28(월)·9/29(화)에 2회 → 목표 달성. 9/29 아침 기준: 이번 주 남은 날은 빼고 10/5(월)부터
+        let habit = weekly(2, done: [20260928, 20260929])
+        XCTAssertEqual(planned([habit], now: at(2026, 9, 29)), Array(20261005...20261012))
+    }
+
+    func testWeeklyCheckedTodaySkipsTodayOnly() {
+        let habit = weekly(3, done: [20260928])
+        let expected = [20260929, 20260930] + Array(20261001...20261011)
+        XCTAssertEqual(planned([habit], now: at(2026, 9, 28)), expected)
+    }
+
+    func testWeeklyGoalMetOnSundayResumesOnMonday() {
+        // 10/4(일)에 목표 1회 달성 → 10/5(월)부터 다시
+        let habit = weekly(1, done: [20261004])
+        XCTAssertEqual(planned([habit], now: at(2026, 10, 4)), Array(20261005...20261017))
+    }
+
+    func testWeeklyGoalMetButWeekdayHabitStillPlans() {
+        let wednesdayOnly = ReminderTestHabit(weekdays: [4], createdDay: 20260901)   // 수
+        let met = weekly(1, done: [20260929])
+        // 9/29 아침: 주 n회는 이번 주 목표 달성 → 9/30(수)은 요일 습관 때문에만 들어간다
+        XCTAssertEqual(planned([wednesdayOnly, met], now: at(2026, 9, 29)),
+                       [20260930] + Array(20261005...20261012))
+    }
+
     // MARK: - 시각 변환
 
     func testHourMinuteFromMinutes() {

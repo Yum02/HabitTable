@@ -24,19 +24,27 @@ struct WeekMatrixView: View {
 
             ForEach(habits) { habit in
                 GridRow {
-                    Text(habit.name)
-                        .font(.spoqa(12.5, .bold, relativeTo: .subheadline))
-                        .foregroundStyle(Theme.soil)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(width: nameWidth, height: 34, alignment: .leading)
-                        .padding(.leading, 4)
-                        .contentShape(Rectangle())
-                        .contextMenu {
-                            Button { onEdit(habit) } label: { Label("수정", systemImage: "pencil") }
-                            Button(role: .destructive) { onDelete(habit) } label: { Label("삭제", systemImage: "trash") }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(habit.name)
+                            .font(.spoqa(12.5, .bold, relativeTo: .subheadline))
+                            .foregroundStyle(Theme.soil)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        if let target = habit.weeklyTarget {
+                            WeeklyBadge(target: target, count: weeklyCount(of: habit))
                         }
-                        .accessibilityHint("길게 누르면 수정하거나 삭제할 수 있어요")
+                    }
+                    .frame(width: nameWidth, alignment: .leading)
+                    .frame(minHeight: 34, alignment: .leading)   // 기본 크기에선 34, 큰 글자에선 늘어남
+                    .padding(.leading, 4)
+                    .contentShape(Rectangle())
+                    .contextMenu {
+                        Button { onEdit(habit) } label: { Label("수정", systemImage: "pencil") }
+                        Button(role: .destructive) { onDelete(habit) } label: { Label("삭제", systemImage: "trash") }
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(nameAccessibilityLabel(habit))
+                    .accessibilityHint("길게 누르면 수정하거나 삭제할 수 있어요")
 
                     ForEach(week, id: \.self) { date in
                         CheckCell(state: state(of: habit, on: date)) {
@@ -55,9 +63,19 @@ struct WeekMatrixView: View {
     }
 
     private func state(of habit: Habit, on date: Date) -> CheckCell.CellState {
-        guard HabitProgress.isScheduled(habit, on: date, calendar: calendar) else { return .rest }
+        guard HabitProgress.isCheckable(habit, on: date, calendar: calendar) else { return .rest }
         guard HabitProgress.canToggle(date: date, today: today, calendar: calendar) else { return .future }
         return HabitProgress.isCompleted(habit, on: date, calendar: calendar) ? .done : .missed
+    }
+
+    /// 지금 보고 있는 주의 횟수
+    private func weeklyCount(of habit: Habit) -> Int {
+        HabitProgress.weeklyCount(habit, weekContaining: week.first ?? today, calendar: calendar)
+    }
+
+    private func nameAccessibilityLabel(_ habit: Habit) -> String {
+        guard let target = habit.weeklyTarget else { return habit.name }
+        return "\(habit.name), 주 \(target)회 중 \(weeklyCount(of: habit))회 완료"
     }
 
     private func accessibilityLabel(_ habit: Habit, _ date: Date) -> String {
@@ -145,5 +163,26 @@ struct CheckCell: View {
             .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: state == .done)
         }
+    }
+}
+
+/// 주 n회 습관의 그 주 횟수 (예: 주 3회 · 2/3). 목표를 채우면 진한 초록 + ✓
+private struct WeeklyBadge: View {
+    let target: Int
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Text(HabitProgress.weeklySummary(target: target, count: count))
+                .monospacedDigit()
+            if count >= target {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 8, weight: .heavy))
+            }
+        }
+        .font(.spoqa(10, .medium, relativeTo: .caption2))
+        .foregroundStyle(count >= target ? Theme.grass4 : Theme.stem)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
     }
 }

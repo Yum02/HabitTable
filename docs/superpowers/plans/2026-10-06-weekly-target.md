@@ -446,7 +446,8 @@ git commit -m "알림 예약에 주 n회 목표 반영"
                             WeeklyBadge(target: target, count: weeklyCount(of: habit))
                         }
                     }
-                    .frame(width: nameWidth, minHeight: 34, alignment: .leading)   // 기본 크기에선 34, 큰 글자에선 늘어남
+                    .frame(width: nameWidth, alignment: .leading)
+                    .frame(minHeight: 34, alignment: .leading)   // 기본 크기에선 34, 큰 글자에선 늘어남 (width:와 minHeight:는 한 호출에 못 섞는다)
                     .padding(.leading, 4)
                     .contentShape(Rectangle())
                     .contextMenu {

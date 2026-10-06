@@ -6,6 +6,7 @@ private struct ReminderTestHabit: HabitSchedulable {
     var weekdays: [Int]
     var createdDay: Int
     var completedDays: [Int] = []
+    var weeklyTarget: Int? = nil
 }
 
 final class ReminderPlannerTests: XCTestCase {

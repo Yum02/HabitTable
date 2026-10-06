@@ -52,9 +52,11 @@ enum HabitProgress {
 
     // MARK: - 습관 판정
 
-    /// 그날 해야 하는 습관인가: 요일이 맞고, 만든 날 이후
+    /// 그날 꼭 해야 하는 습관인가: 요일 방식이고, 요일이 맞고, 만든 날 이후.
+    /// 주 n회 습관은 정해진 요일이 없으므로 항상 false (isCheckable·countsToward 참고)
     static func isScheduled<H: HabitSchedulable>(_ habit: H, on date: Date, calendar: Calendar) -> Bool {
-        guard DayKey.make(date, calendar: calendar) >= habit.createdDay else { return false }
+        guard habit.weeklyTarget == nil,
+              DayKey.make(date, calendar: calendar) >= habit.createdDay else { return false }
         return habit.weekdays.contains(calendar.component(.weekday, from: date))
     }
 
@@ -62,11 +64,11 @@ enum HabitProgress {
         habit.completedDays.contains(DayKey.make(date, calendar: calendar))
     }
 
-    /// 그날 해야 하는 습관 중 완료한 수
+    /// 그날 달성률에 들어가는 습관 중 완료한 수
     static func progress<H: HabitSchedulable>(_ habits: [H], on date: Date, calendar: Calendar) -> DayProgress {
-        let scheduled = habits.filter { isScheduled($0, on: date, calendar: calendar) }
-        let done = scheduled.filter { isCompleted($0, on: date, calendar: calendar) }.count
-        return DayProgress(done: done, total: scheduled.count)
+        let counted = habits.filter { countsToward($0, on: date, calendar: calendar) }
+        let done = counted.filter { isCompleted($0, on: date, calendar: calendar) }.count
+        return DayProgress(done: done, total: counted.count)
     }
 
     /// 오늘까지, 할 습관이 있던 날들의 평균 달성률(%). 그런 날이 없으면 nil
@@ -79,6 +81,45 @@ enum HabitProgress {
         }
         guard !rates.isEmpty else { return nil }
         return Int((rates.reduce(0, +) / Double(rates.count) * 100).rounded())
+    }
+
+    // MARK: - 주 n회
+
+    static let weeklyTargetRange = 1...6
+
+    /// 표에 체크 칸을 보여 줄 날인가: 만든 날 이후이고, 주 n회이거나 요일이 맞는다
+    static func isCheckable<H: HabitSchedulable>(_ habit: H, on date: Date, calendar: Calendar) -> Bool {
+        guard DayKey.make(date, calendar: calendar) >= habit.createdDay else { return false }
+        return habit.weeklyTarget != nil || habit.weekdays.contains(calendar.component(.weekday, from: date))
+    }
+
+    /// 하루 달성률에 넣는가: 그날 해야 하는 요일 습관이거나, 그날 체크한 주 n회 습관
+    static func countsToward<H: HabitSchedulable>(_ habit: H, on date: Date, calendar: Calendar) -> Bool {
+        guard habit.weeklyTarget != nil else { return isScheduled(habit, on: date, calendar: calendar) }
+        return DayKey.make(date, calendar: calendar) >= habit.createdDay
+            && isCompleted(habit, on: date, calendar: calendar)
+    }
+
+    /// date가 속한 월~일 주에 완료한 날 수. 만든 날 이전 기록과 중복 날짜는 세지 않는다.
+    static func weeklyCount<H: HabitSchedulable>(_ habit: H, weekContaining date: Date, calendar: Calendar) -> Int {
+        let week = weekDates(containing: date, calendar: calendar)
+        guard let first = week.first, let last = week.last else { return 0 }
+        let from = max(DayKey.make(first, calendar: calendar), habit.createdDay)
+        let to = DayKey.make(last, calendar: calendar)
+        return Set(habit.completedDays).filter { $0 >= from && $0 <= to }.count
+    }
+
+    /// 알림 대상인 주 n회 습관인가: 만든 날 이후, 그날 미완료, 그 주 목표 미달
+    static func isWeeklyPending<H: HabitSchedulable>(_ habit: H, on date: Date, calendar: Calendar) -> Bool {
+        guard let target = habit.weeklyTarget,
+              DayKey.make(date, calendar: calendar) >= habit.createdDay,
+              !isCompleted(habit, on: date, calendar: calendar) else { return false }
+        return weeklyCount(habit, weekContaining: date, calendar: calendar) < target
+    }
+
+    /// "주 3회 · 2/3"
+    static func weeklySummary(target: Int, count: Int) -> String {
+        "주 \(target)회 · \(count)/\(target)"
     }
 
     // MARK: - 색 단계

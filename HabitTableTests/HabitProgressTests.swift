@@ -6,6 +6,7 @@ private struct TestHabit: HabitSchedulable {
     var weekdays: [Int]
     var createdDay: Int
     var completedDays: [Int] = []
+    var weeklyTarget: Int? = nil
 }
 
 final class HabitProgressTests: XCTestCase {
@@ -154,5 +155,114 @@ final class HabitProgressTests: XCTestCase {
         XCTAssertEqual(HabitProgress.weekdaySummary([2, 3, 4, 5, 6]), "평일")
         XCTAssertEqual(HabitProgress.weekdaySummary([7, 1]), "주말")
         XCTAssertEqual(HabitProgress.weekdaySummary([6, 2, 4]), "월·수·금")
+    }
+
+    // MARK: - 주 n회
+
+    /// 실제 앱처럼 weekdays는 월~일 전체로 둔다(편집 시트 기본값·샘플 데이터와 같음).
+    /// 그래야 isScheduled의 `weeklyTarget == nil` 조건이 빠졌을 때 테스트가 실패한다.
+    private func weekly(_ target: Int, created: Int = 20260901, done: [Int] = []) -> TestHabit {
+        TestHabit(weekdays: Array(1...7), createdDay: created, completedDays: done, weeklyTarget: target)
+    }
+
+    func testWeeklyHabitIsNeverScheduledButCheckableAfterCreation() {
+        let habit = weekly(3, created: 20260930)   // 9/30(수)에 만듦
+        for d in 28...30 {
+            XCTAssertFalse(HabitProgress.isScheduled(habit, on: date(2026, 9, d), calendar: cal), "9/\(d)")
+        }
+        XCTAssertFalse(HabitProgress.isCheckable(habit, on: date(2026, 9, 28), calendar: cal))
+        XCTAssertFalse(HabitProgress.isCheckable(habit, on: date(2026, 9, 29), calendar: cal))
+        XCTAssertTrue(HabitProgress.isCheckable(habit, on: date(2026, 9, 30), calendar: cal))
+        XCTAssertTrue(HabitProgress.isCheckable(habit, on: date(2026, 10, 4), calendar: cal), "일요일도 체크 칸")
+    }
+
+    func testWeekdayHabitCheckableMatchesScheduled() {
+        let habit = TestHabit(weekdays: [2, 4, 6], createdDay: 20260901)   // 월·수·금
+        XCTAssertTrue(HabitProgress.isCheckable(habit, on: date(2026, 9, 28), calendar: cal))
+        XCTAssertFalse(HabitProgress.isCheckable(habit, on: date(2026, 9, 29), calendar: cal))
+    }
+
+    func testWeeklyHabitCountsOnlyOnCheckedDays() {
+        let habit = weekly(3, done: [20260929])
+        XCTAssertEqual(HabitProgress.progress([habit], on: date(2026, 9, 29), calendar: cal), DayProgress(done: 1, total: 1))
+        XCTAssertEqual(HabitProgress.progress([habit], on: date(2026, 9, 30), calendar: cal), DayProgress(done: 0, total: 0))
+    }
+
+    func testWeeklyMixedWithWeekdayHabit() {
+        let daily = TestHabit(weekdays: Array(1...7), createdDay: 20260901)
+        let habit = weekly(3, done: [20260929])
+        XCTAssertEqual(HabitProgress.progress([daily, habit], on: date(2026, 9, 29), calendar: cal), DayProgress(done: 1, total: 2))
+        XCTAssertEqual(HabitProgress.progress([daily, habit], on: date(2026, 9, 30), calendar: cal), DayProgress(done: 0, total: 1))
+    }
+
+    func testWeeklyCheckBeforeCreationDoesNotCount() {
+        let habit = weekly(3, created: 20261001, done: [20260929])
+        XCTAssertEqual(HabitProgress.progress([habit], on: date(2026, 9, 29), calendar: cal), DayProgress(done: 0, total: 0))
+    }
+
+    func testWeeklyOnlyUncheckedWeekHasNoAverage() {
+        let habit = weekly(3)
+        let week = HabitProgress.weekDates(containing: date(2026, 9, 30), calendar: cal)
+        XCTAssertNil(HabitProgress.averagePercent([habit], dates: week, today: date(2026, 10, 4), calendar: cal))
+        let p = HabitProgress.progress([habit], on: date(2026, 9, 30), calendar: cal)
+        XCTAssertEqual(HabitProgress.level(for: p, date: date(2026, 9, 30), today: date(2026, 10, 4), calendar: cal), .none)
+    }
+
+    func testWeeklyCountOnlyThatWeek() {
+        // 9/27(일)은 지난주, 10/5(월)는 다음 주
+        let habit = weekly(3, done: [20260927, 20260928, 20260930, 20261004, 20261005])
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 10, 1), calendar: cal), 3)
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 10, 4), calendar: cal), 3, "일요일은 같은 주")
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 10, 5), calendar: cal), 1, "월요일부터 새로 센다")
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 9, 27), calendar: cal), 1)
+    }
+
+    func testWeeklyCountExcludesBeforeCreation() {
+        let habit = weekly(3, created: 20260930, done: [20260928, 20260930])
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 10, 1), calendar: cal), 1)
+    }
+
+    func testWeeklyCountIncludesChecksFromWeekdayEra() {
+        // 월요일 습관(요일 방식)으로 9/28에 체크한 뒤 주 3회로 바꿈. createdDay는 그대로라 그 체크도 센다.
+        let habit = TestHabit(weekdays: [2], createdDay: 20260901,
+                              completedDays: [20260928, 20260930], weeklyTarget: 3)
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 10, 1), calendar: cal), 2)
+    }
+
+    func testWeeklyCountAllowsOverTarget() {
+        let habit = weekly(2, done: [20260928, 20260929, 20260930])
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 9, 28), calendar: cal), 3)
+    }
+
+    func testWeeklyCountIgnoresDuplicateKeys() {
+        let habit = weekly(3, done: [20260928, 20260928])
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 9, 28), calendar: cal), 1)
+    }
+
+    func testWeeklyCountAcrossYearEnd() {
+        // 2026-12-28(월) ~ 2027-01-03(일)이 한 주
+        let habit = weekly(3, done: [20261228, 20270103, 20270104])
+        XCTAssertEqual(HabitProgress.weeklyCount(habit, weekContaining: date(2026, 12, 31), calendar: cal), 2)
+    }
+
+    func testIsWeeklyPending() {
+        let once = weekly(2, done: [20260928])
+        XCTAssertFalse(HabitProgress.isWeeklyPending(once, on: date(2026, 9, 28), calendar: cal), "그날 이미 완료")
+        XCTAssertTrue(HabitProgress.isWeeklyPending(once, on: date(2026, 9, 29), calendar: cal), "목표 전")
+
+        let met = weekly(2, done: [20260928, 20260929])
+        XCTAssertFalse(HabitProgress.isWeeklyPending(met, on: date(2026, 9, 30), calendar: cal), "목표 달성")
+        XCTAssertTrue(HabitProgress.isWeeklyPending(met, on: date(2026, 10, 5), calendar: cal), "다음 주는 새로")
+
+        let notYet = weekly(2, created: 20261001)
+        XCTAssertFalse(HabitProgress.isWeeklyPending(notYet, on: date(2026, 9, 30), calendar: cal), "만들기 전")
+
+        let weekday = TestHabit(weekdays: Array(1...7), createdDay: 20260901)
+        XCTAssertFalse(HabitProgress.isWeeklyPending(weekday, on: date(2026, 9, 30), calendar: cal), "요일 습관은 해당 없음")
+    }
+
+    func testWeeklySummary() {
+        XCTAssertEqual(HabitProgress.weeklySummary(target: 3, count: 2), "주 3회 · 2/3")
+        XCTAssertEqual(HabitProgress.weeklySummary(target: 2, count: 4), "주 2회 · 4/2")
     }
 }

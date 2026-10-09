@@ -10,7 +10,9 @@ struct WeekMatrixView: View {
     let onEdit: (Habit) -> Void
     let onDelete: (Habit) -> Void
 
-    private let nameWidth: CGFloat = 82
+    /// 표(카드) 전체 폭. 처음엔 0이라 이름 칸은 최소 82pt로 그린다.
+    @State private var tableWidth: CGFloat = 0
+    private var nameWidth: CGFloat { HabitProgress.nameColumnWidth(tableWidth: tableWidth) }
 
     var body: some View {
         Grid(horizontalSpacing: 0, verticalSpacing: 10) {
@@ -75,6 +77,14 @@ struct WeekMatrixView: View {
         .padding(.leading, 6)
         .padding(.trailing, 10)
         .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Theme.card))
+        .background {
+            // 화면 폭에 맞춰 이름 칸을 넓힌다 (좁은 화면에선 날짜 칸 34pt를 먼저 지킴)
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { tableWidth = proxy.size.width }
+                    .onChange(of: proxy.size.width) { _, newWidth in tableWidth = newWidth }
+            }
+        }
     }
 
     private func state(of habit: Habit, on date: Date) -> CheckCell.CellState {

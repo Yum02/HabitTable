@@ -209,6 +209,13 @@ enum HabitProgress {
 
     // MARK: - 표시용
 
+    /// 이번 주 표의 이름 칸 너비. 표 폭(카드 포함)에서 여백(16)·이름 칸 왼쪽 여백(4)과
+    /// 날짜 칸 7개(누르는 영역 34pt)를 먼저 남기고, 남는 폭을 82~100pt 안에서 쓴다.
+    static func nameColumnWidth(tableWidth: CGFloat) -> CGFloat {
+        let spare = tableWidth - 16 - 4 - 7 * 34
+        return min(max(spare, 82), 100)
+    }
+
     /// [2,4,6] → "월·수·금", 7일 → "매일"
     static func weekdaySummary(_ weekdays: [Int]) -> String {
         let set = Set(weekdays)

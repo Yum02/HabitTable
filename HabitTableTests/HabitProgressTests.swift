@@ -393,4 +393,15 @@ final class HabitProgressTests: XCTestCase {
         XCTAssertEqual(HabitProgress.streakSpoken(5, weekly: false), "5일 연속")
         XCTAssertEqual(HabitProgress.streakSpoken(3, weekly: true), "3주 연속")
     }
+
+    // MARK: - 이름 칸 너비
+
+    func testNameColumnWidthFitsScreen() {
+        // 표 폭 = 화면 폭 - 바깥 여백 32. 날짜 칸 7개(누르는 영역 34pt)를 먼저 남긴다.
+        XCTAssertEqual(HabitProgress.nameColumnWidth(tableWidth: 370), 100, "402pt 화면: 최대 100")
+        XCTAssertEqual(HabitProgress.nameColumnWidth(tableWidth: 361), 100, "393pt 화면")
+        XCTAssertEqual(HabitProgress.nameColumnWidth(tableWidth: 343), 85, "SE(375pt): 칸 34pt를 지키는 만큼만")
+        XCTAssertEqual(HabitProgress.nameColumnWidth(tableWidth: 300), 82, "더 좁아도 82 아래로는 안 줄임")
+        XCTAssertEqual(HabitProgress.nameColumnWidth(tableWidth: 0), 82, "아직 폭을 모를 때")
+    }
 }

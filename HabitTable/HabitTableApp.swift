@@ -23,8 +23,10 @@ struct HabitTableApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .tint(Theme.grass4)
+            LaunchGate {
+                ContentView()
+                    .tint(Theme.grass4)
+            }
         }
         .modelContainer(container)
     }

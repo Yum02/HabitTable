@@ -61,7 +61,7 @@ struct HabitEditorView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Picker("반복 방식", selection: $isWeekly) {
                                 Text("요일 정하기").tag(false)
-                                Text("주 n회").tag(true)
+                                Text("횟수 정하기").tag(true)
                             }
                             .pickerStyle(.segmented)
 

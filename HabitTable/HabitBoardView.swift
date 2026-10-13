@@ -179,7 +179,7 @@ struct HabitBoardView: View {
     private var emptyCard: some View {
         EmptyStateCard(
             title: "첫 습관을 심어 보세요",
-            message: "매일 또는 원하는 요일에 할 습관을 추가하면, 이번 주 표와 잔디가 채워지기 시작해요.",
+            message: "매일, 원하는 요일, 또는 일주일에 몇 번 할 습관을 추가하면, 이번 주 표와 잔디가 채워지기 시작해요.",
             buttonLabel: "습관 추가"
         ) {
             editorTarget = .new

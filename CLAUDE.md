@@ -24,7 +24,7 @@ HabitTable/
   HabitBoardView.swift       메인 화면: "이번 주" 습관 표 + 최근 4주 잔디, 추가/수정/삭제
   WeekMatrixView.swift       습관 표 (줄=습관, 칸=월~일), CheckCell, 이름 옆 🌱연속 배지, 주 n회 횟수(WeeklyBadge)
   LawnView.swift             최근 4주 잔디 (월요일 시작 7×4)
-  HabitEditorView.swift      추가·수정 시트: 요일 정하기 / 주 n회 전환, WeekdayPicker, 횟수 Stepper
+  HabitEditorView.swift      추가·수정 시트: 요일 정하기 / 횟수 정하기 전환, WeekdayPicker, 횟수 Stepper
   Habit.swift                @Model Habit(weeklyTarget 포함), HabitSchedulable 프로토콜, DayKey
   TodoItem.swift             @Model TodoItem (하루짜리 할 일, 날짜 day=DayKey, 습관과 독립)
   TodoProgress.swift         할 일 규칙(순수 함수): 정렬, 날짜별 필터, 날짜 제목 ← 테스트 대상

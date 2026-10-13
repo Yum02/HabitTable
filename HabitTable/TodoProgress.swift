@@ -42,4 +42,17 @@ enum TodoProgress {
             return c.year == calendar.component(.year, from: base) ? monthDay : "\(c.year ?? 0)년 \(monthDay)"
         }
     }
+
+    /// 할 일이 없는 날의 빈 화면 문구 (day·today는 DayKey).
+    /// 오늘은 첫 안내, 앞으로의 날은 "미리 적어 둘", 지난 날은 "한 일을 적어 둘 수도".
+    static func emptyState(day: Int, today: Int) -> (title: String, message: String) {
+        if day == today {
+            return ("오늘 할 일을 추가해 보세요",
+                    "병원 예약, 택배 찾기처럼 하루짜리 일을 적어 두세요. 위의 날짜를 눌러 다른 날 할 일도 볼 수 있어요.")
+        }
+        if day > today {
+            return ("이 날은 할 일이 없어요", "아래 버튼으로 이 날 할 일을 미리 적어 둘 수 있어요.")
+        }
+        return ("이 날은 할 일이 없어요", "아래 버튼으로 이 날 한 일을 적어 둘 수도 있어요.")
+    }
 }

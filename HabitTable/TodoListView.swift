@@ -192,11 +192,10 @@ struct TodoListView: View {
     // MARK: - 할 일이 없을 때
 
     private var emptyCard: some View {
-        EmptyStateCard(
-            title: isToday ? "오늘 할 일을 추가해 보세요" : "이 날은 할 일이 없어요",
-            message: isToday
-                ? "병원 예약, 택배 찾기처럼 하루짜리 일을 적어 두세요. 위의 날짜를 눌러 다른 날 할 일도 볼 수 있어요."
-                : "아래 버튼으로 이 날 할 일을 미리 적어 둘 수 있어요.",
+        let copy = TodoProgress.emptyState(day: selectedKey, today: DayKey.make(today, calendar: calendar))
+        return EmptyStateCard(
+            title: copy.title,
+            message: copy.message,
             buttonLabel: "할 일 추가"
         ) {
             editorTarget = .new

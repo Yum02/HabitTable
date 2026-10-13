@@ -113,4 +113,27 @@ final class TodoProgressTests: XCTestCase {
         let tomorrowMorning = cal.date(from: DateComponents(year: 2026, month: 9, day: 29, hour: 0, minute: 1))!
         XCTAssertEqual(TodoProgress.dayTitle(for: tomorrowMorning, today: today, calendar: cal), "내일")
     }
+
+    // MARK: - 빈 화면 문구
+
+    func testEmptyStateTodayFuturePast() {
+        let today = TodoProgress.emptyState(day: 20261013, today: 20261013)
+        XCTAssertEqual(today.title, "오늘 할 일을 추가해 보세요")
+        XCTAssertEqual(today.message, "병원 예약, 택배 찾기처럼 하루짜리 일을 적어 두세요. 위의 날짜를 눌러 다른 날 할 일도 볼 수 있어요.")
+
+        let tomorrow = TodoProgress.emptyState(day: 20261014, today: 20261013)
+        XCTAssertEqual(tomorrow.title, "이 날은 할 일이 없어요")
+        XCTAssertEqual(tomorrow.message, "아래 버튼으로 이 날 할 일을 미리 적어 둘 수 있어요.")
+
+        let yesterday = TodoProgress.emptyState(day: 20261012, today: 20261013)
+        XCTAssertEqual(yesterday.title, "이 날은 할 일이 없어요")
+        XCTAssertEqual(yesterday.message, "아래 버튼으로 이 날 한 일을 적어 둘 수도 있어요.")
+    }
+
+    func testEmptyStateAcrossYearEnd() {
+        XCTAssertEqual(TodoProgress.emptyState(day: 20270101, today: 20261231).message,
+                       "아래 버튼으로 이 날 할 일을 미리 적어 둘 수 있어요.")
+        XCTAssertEqual(TodoProgress.emptyState(day: 20261231, today: 20270101).message,
+                       "아래 버튼으로 이 날 한 일을 적어 둘 수도 있어요.")
+    }
 }

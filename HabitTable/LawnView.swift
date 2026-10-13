@@ -68,8 +68,8 @@ struct LawnView: View {
         HStack(spacing: 4) {
             Spacer()
             Text("적게")
-            ForEach([Theme.grass0, Theme.grass1, Theme.grass2, Theme.grass3, Theme.grass4], id: \.self) { color in
-                RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 11, height: 11)
+            ForEach(Array([Theme.grass0, Theme.grass1, Theme.grass2, Theme.grass3, Theme.grass4].enumerated()), id: \.offset) { item in
+                RoundedRectangle(cornerRadius: 3).fill(item.element).frame(width: 11, height: 11)
             }
             Text("많이")
         }

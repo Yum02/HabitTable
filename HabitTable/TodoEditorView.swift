@@ -101,5 +101,5 @@ struct TodoEditorView: View {
 
 #Preview {
     TodoEditorView(todo: nil, defaultDate: .now, calendar: AppCalendar.make())
-        .modelContainer(for: TodoItem.self, inMemory: true)
+        .modelContainer(for: [Habit.self, TodoItem.self], inMemory: true)
 }

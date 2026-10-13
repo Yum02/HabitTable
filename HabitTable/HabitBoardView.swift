@@ -9,8 +9,12 @@ struct HabitBoardView: View {
 
     @State private var today = Date.now
     @State private var weekOffset = 0
-    @State private var editorTarget: EditorTarget?
+    @State private var editorTarget: EditorTarget<Habit>?
     @State private var habitToDelete: Habit?
+    @State private var showReminderSettings = false
+    @State private var rescheduleTask: Task<Void, Never>?
+    @AppStorage(ReminderSettings.enabledKey) private var reminderEnabled = false
+    @AppStorage(ReminderSettings.minutesKey) private var reminderMinutes = ReminderSettings.defaultMinutes
 
     private let calendar = AppCalendar.make()
 
@@ -20,6 +24,12 @@ struct HabitBoardView: View {
 
     private var week: [Date] {
         HabitProgress.weekDates(containing: displayedDate, calendar: calendar)
+    }
+
+    /// 알림 예약에 영향을 주는 값만 모은 지문. 이게 바뀌면 다시 예약한다.
+    /// (체크/해제, 습관 추가·수정·삭제 모두 여기 반영된다)
+    private var reminderSignature: [String] {
+        habits.map { "\($0.createdDay)|\($0.weekdays)|\($0.weeklyTarget ?? 0)|\($0.completedDays)" }
     }
 
     var body: some View {
@@ -49,7 +59,15 @@ struct HabitBoardView: View {
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    showReminderSettings = true
+                } label: {
+                    Image(systemName: reminderEnabled ? "bell.fill" : "bell")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .accessibilityLabel("알림 설정")
+
                 Button {
                     editorTarget = .new
                 } label: {
@@ -61,10 +79,13 @@ struct HabitBoardView: View {
         }
         .sheet(item: $editorTarget) { target in
             HabitEditorView(
-                habit: target.habit,
+                habit: target.model,
                 calendar: calendar,
                 nextSortOrder: (habits.map(\.sortOrder).max() ?? -1) + 1
             )
+        }
+        .sheet(isPresented: $showReminderSettings) {
+            ReminderSettingsView()
         }
         .confirmationDialog(
             "'\(habitToDelete?.name ?? "")' 습관을 삭제할까요?",
@@ -86,8 +107,14 @@ struct HabitBoardView: View {
             if phase == .active {
                 today = .now
                 weekOffset = 0
+                rescheduleReminders()
             }
         }
+        // 첫 진입, 그리고 알림에 영향을 주는 값이 바뀔 때마다 알림을 다시 예약한다
+        .task { rescheduleReminders() }
+        .onChange(of: reminderSignature) { _, _ in rescheduleReminders() }
+        .onChange(of: reminderEnabled) { _, _ in rescheduleReminders() }
+        .onChange(of: reminderMinutes) { _, _ in rescheduleReminders() }
     }
 
     // MARK: - 머리글
@@ -150,30 +177,13 @@ struct HabitBoardView: View {
     // MARK: - 습관이 없을 때
 
     private var emptyCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("첫 습관을 심어 보세요")
-                .font(.spoqa(17, .bold, relativeTo: .headline))
-                .foregroundStyle(Theme.soil)
-            Text("매일 또는 원하는 요일에 할 습관을 추가하면, 이번 주 표와 잔디가 채워지기 시작해요.")
-                .font(.spoqa(14, .regular, relativeTo: .subheadline))
-                .foregroundStyle(Theme.stem)
-                .fixedSize(horizontal: false, vertical: true)
-            Button {
-                editorTarget = .new
-            } label: {
-                Label("습관 추가", systemImage: "plus")
-                    .font(.spoqa(15, .bold, relativeTo: .body))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Capsule().fill(Theme.grass4))
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 4)
+        EmptyStateCard(
+            title: "첫 습관을 심어 보세요",
+            message: "매일 또는 원하는 요일에 할 습관을 추가하면, 이번 주 표와 잔디가 채워지기 시작해요.",
+            buttonLabel: "습관 추가"
+        ) {
+            editorTarget = .new
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Theme.card))
     }
 
     // MARK: - 동작
@@ -185,23 +195,19 @@ struct HabitBoardView: View {
             habit.completedDays = HabitProgress.toggled(habit.completedDays, key: key)
         }
     }
-}
 
-/// 시트에 무엇을 띄울지
-enum EditorTarget: Identifiable {
-    case new
-    case edit(Habit)
-
-    var id: String {
-        switch self {
-        case .new: return "new"
-        case .edit(let habit): return "edit-\(habit.persistentModelID.hashValue)"
+    /// 알림을 다시 예약한다. 이전 예약 작업이 남아 있으면 취소하고, 그 작업이 끝난 뒤에 새로 시작한다.
+    private func rescheduleReminders() {
+        let previous = rescheduleTask
+        previous?.cancel()
+        let enabled = reminderEnabled
+        let (hour, minute) = ReminderPlanner.hourMinute(fromMinutes: reminderMinutes)
+        let days = ReminderPlanner.plannedDays(habits: habits, now: .now, hour: hour, minute: minute, calendar: calendar)
+        let cal = calendar
+        rescheduleTask = Task {
+            await previous?.value
+            await ReminderScheduler.apply(enabled: enabled, dayKeys: days, hour: hour, minute: minute, calendar: cal)
         }
-    }
-
-    var habit: Habit? {
-        if case .edit(let habit) = self { return habit }
-        return nil
     }
 }
 

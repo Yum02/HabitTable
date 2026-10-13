@@ -10,6 +10,8 @@ protocol HabitSchedulable {
     var createdDay: Int { get }
     /// 완료한 날짜 목록 (DayKey)
     var completedDays: [Int] { get }
+    /// nil이면 요일 방식, 1~6이면 "일주일에 n번, 아무 요일이나"
+    var weeklyTarget: Int? { get }
 }
 
 @Model
@@ -19,13 +21,17 @@ final class Habit {
     var createdDay: Int
     var sortOrder: Int
     var completedDays: [Int]
+    /// nil이면 요일 방식. 선택형이라 기존 데이터는 자동으로 nil이 된다.
+    var weeklyTarget: Int? = nil
 
-    init(name: String, weekdays: [Int], createdDay: Int, sortOrder: Int = 0, completedDays: [Int] = []) {
+    init(name: String, weekdays: [Int], createdDay: Int, sortOrder: Int = 0,
+         completedDays: [Int] = [], weeklyTarget: Int? = nil) {
         self.name = name
         self.weekdays = weekdays.sorted()
         self.createdDay = createdDay
         self.sortOrder = sortOrder
         self.completedDays = completedDays
+        self.weeklyTarget = weeklyTarget
     }
 }
 

@@ -1,6 +1,6 @@
 # Habit Table — 프로젝트 안내 (Claude Code용)
 
-습관을 요일별로 체크하고 "잔디"로 기록을 보는 iOS 앱.
+습관을 요일별(또는 주 n회)로 체크하고 "잔디"와 연속 기록으로 보는 iOS 앱.
 Swift · SwiftUI · SwiftData, 최소 iOS 17. UI 문구는 모두 한국어(해요체).
 
 ## 개발 환경 제약 (중요)
@@ -22,20 +22,25 @@ HabitTable/
   HabitTableApp.swift        앱 시작, ModelContainer, 글꼴 등록, SampleData(-seedSampleData)
   ContentView.swift          TabView 루트 (습관 / 할 일 탭)
   HabitBoardView.swift       메인 화면: "이번 주" 습관 표 + 최근 4주 잔디, 추가/수정/삭제
-  WeekMatrixView.swift       습관 표 (줄=습관, 칸=월~일), CheckCell
+  WeekMatrixView.swift       습관 표 (줄=습관, 칸=월~일), CheckCell, 이름 옆 🌱연속 배지, 주 n회 횟수(WeeklyBadge)
   LawnView.swift             최근 4주 잔디 (월요일 시작 7×4)
-  HabitEditorView.swift      추가·수정 시트, WeekdayPicker
-  Habit.swift                @Model Habit, HabitSchedulable 프로토콜, DayKey
+  HabitEditorView.swift      추가·수정 시트: 요일 정하기 / 주 n회 전환, WeekdayPicker, 횟수 Stepper
+  Habit.swift                @Model Habit(weeklyTarget 포함), HabitSchedulable 프로토콜, DayKey
   TodoItem.swift             @Model TodoItem (하루짜리 할 일, 날짜 day=DayKey, 습관과 독립)
   TodoProgress.swift         할 일 규칙(순수 함수): 정렬, 날짜별 필터, 날짜 제목 ← 테스트 대상
   TodoListView.swift         "할 일" 탭: 날짜 이동(‹ ›·달력), 미완료 위/완료 아래, 스와이프 수정·삭제
   TodoEditorView.swift       할 일 추가·수정 시트 (이름 + 날짜)
-  HabitProgress.swift        순수 계산 규칙(AppCalendar, 주/잔디 날짜, 달성률, 색 단계) ← 테스트 대상
-  Theme.swift                색 토큰, Font.spoqa(...), FontRegistrar, Color(hex:)
+  SheetTarget.swift          시트 대상 enum(EditorTarget<Model>) + 빈 상태 카드(EmptyStateCard)
+  ReminderPlanner.swift      알림 규칙(순수 함수): 예약할 날짜 계산, 시각 변환 ← 테스트 대상
+  ReminderScheduler.swift    UNUserNotificationCenter 래퍼 + 설정 키(ReminderSettings)
+  ReminderSettingsView.swift 알림 설정 시트 (켜기/끄기 + 시각)
+  HabitProgress.swift        순수 계산 규칙(AppCalendar, 주/잔디 날짜, 달성률, 색 단계, 주 n회, 연속 기록) ← 테스트 대상
+  Theme.swift                색 토큰(라이트/다크 쌍), Font.spoqa(...), FontRegistrar, Color(hex:)
   SpoqaHanSansNeo-*.ttf      글꼴 (SIL OFL, 라이선스 SpoqaHanSansNeo-OFL.txt)
 HabitTableTests/
   HabitProgressTests.swift   계산 규칙 단위 테스트
   TodoProgressTests.swift    할 일 정렬·날짜 규칙 테스트
+  ReminderPlannerTests.swift 알림 예약 날짜·시각 변환 테스트
 ```
 
 ## 규칙
@@ -45,19 +50,31 @@ HabitTableTests/
   테스트는 SwiftData 없이 `HabitSchedulable`을 따르는 가짜 구조체로 작성한다.
 - 색은 `Theme`의 토큰만 쓴다. 글꼴은 `.font(.spoqa(크기, .bold, relativeTo: .body))`.
 - 체크는 오늘까지만 가능, 습관은 `createdDay` 이후만 계산.
+- 습관은 요일 방식(`weeklyTarget == nil`) 또는 주 n회(`weeklyTarget` 1~6, 월~일 기준). 주 n회는 `isScheduled`가 항상 false이고, 체크 칸은 `isCheckable`, 하루 달성률은 체크한 날만(`countsToward`), 알림은 그 주 목표 전·그날 미완료일 때(`isWeeklyPending`).
+- 연속 기록(`HabitProgress.streak`)은 습관마다 오늘 기준: 요일 습관은 해야 하는 날 수(쉬는 요일 건너뜀), 주 n회는 목표를 채운 주 수. 오늘·이번 주가 미완료면 끊지 않고 건너뛴다. 저장 값 없이 지금 설정으로 다시 계산한다. 표에는 2 이상일 때 이름 옆 `🌱n`(단위 없음, 접근성은 "5일 연속"/"3주 연속").
 - 할 일은 날짜별 목록이다(`TodoItem.day`, 이월 없음). 습관과 달리 미래 날짜에도 추가·체크할 수 있다.
-- 현재 라이트 모드 고정(`.preferredColorScheme(.light)`). 다크 모드는 미구현.
+- 외관은 시스템 설정(라이트/다크)을 따른다. `Theme` 색은 모두 `Color(light:dark:)` 쌍이며, 새 색도 쌍으로 만든다. 초록 채움 위 글자·체크는 `Theme.onGrass`. `.preferredColorScheme(.light)`는 미리보기(#Preview)에만 남아 있다.
 - ModelContainer를 만드는 곳(앱·미리보기)에는 Habit.self와 TodoItem.self를 모두 넣는다. 빠지면 @Query가 런타임에 크래시한다.
-- 스크린샷 실행 인자: `-seedSampleData`(샘플 데이터), `-startTodoTab`(시작 탭을 할 일로).
+- 알림은 하루 한 번, 전체 공통 시각이다. 그날 체크할 습관이 남아 있을 때만 앞으로 14일치를 예약하고, 습관이 바뀌거나 앱이 켜질 때마다 전부 지우고 다시 예약한다. 알림 권한은 설정 시트의 스위치를 켤 때만 요청한다.
+- 스크린샷 실행 인자: `-seedSampleData`(샘플 데이터), `-startTodoTab`(시작 탭을 할 일로). CI는 라이트·다크 두 벌을 찍는다(`calendar-light/dark.png`, `todo-light/dark.png`).
 
 ## 확정된 디자인 (사용자 승인)
 - 잔디 초록 단계: #E3EBDC → #BFE3A5 → #7FCA6B → #3FA34D → #226F35
 - 배경 #EEF5E8 + 아래쪽 풀빛 그라데이션, 글자 #1B2A1E / 보조 #7A8A77
-- 메인: "이번 주"(월~일) 표 — 칸 탭으로 체크, 미래 점선, 쉬는 요일 "–"
+- 메인: "이번 주"(월~일) 표 — 칸 탭으로 체크, 미래 점선, 쉬는 요일 "–"(주 n회 습관은 "–" 없이 매일 체크 칸)
+- 주 n회 습관: 이름 아래 `주 3회 · 2/3`(목표 달성 시 grass4 + ✓). 연속 기록: 이름 옆 `🌱5`(grass4)
+- 다크 모드: 라이트 팔레트는 그대로 두고 `Theme`에 다크 값을 짝지어 정의
 - 잔디 6단계: 할 습관 없음 / 0% / 1–49 / 50–74 / 75–99 / 100%, 미래 점선
 - 2주·1달 보기는 사용자가 원하지 않음(삭제됨)
 - 웹 미리보기(디자인 확인용): https://claude.ai/artifact/9evP3YseWcjMbqrw8nkXQj
 
 ## 작업 방식
 - 사용자는 기능을 **하나씩** 설계 → 승인 → 구현하길 원한다.
-- 다음 후보: 알림, 다크 모드.
+- 큰 기능 순서(2026-10-06 합의): 주 n회 목표 → 연속 기록 → **위젯**(홈 화면에서 오늘 습관 바로 체크).
+
+## 진행 상황 (2026-10-06)
+- 완료: 할 일, 알림, 다크 모드, 주 n회 목표, 연속 기록.
+- 브랜치 `feature/weekly-target`에 알림·다크 모드·주 n회·연속 기록이 모두 있고, 아직 `main`에 합치지 않았다(PR 예정).
+- 설계·계획 문서: `docs/superpowers/specs/`, `docs/superpowers/plans/` (날짜-기능 이름).
+- 실기기 확인 필요: VoiceOver의 습관 이름 "수정/삭제" 동작, 주 n회 목표 달성 표시(✓).
+- 다음 후보: 위젯.

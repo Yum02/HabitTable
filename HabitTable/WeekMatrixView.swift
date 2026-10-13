@@ -10,7 +10,9 @@ struct WeekMatrixView: View {
     let onEdit: (Habit) -> Void
     let onDelete: (Habit) -> Void
 
-    private let nameWidth: CGFloat = 82
+    /// 표(카드) 전체 폭. 처음엔 0이라 이름 칸은 최소 82pt로 그린다.
+    @State private var tableWidth: CGFloat = 0
+    private var nameWidth: CGFloat { HabitProgress.nameColumnWidth(tableWidth: tableWidth) }
 
     var body: some View {
         Grid(horizontalSpacing: 0, verticalSpacing: 10) {
@@ -23,20 +25,43 @@ struct WeekMatrixView: View {
             }
 
             ForEach(habits) { habit in
+                let streakCount = streak(of: habit)
                 GridRow {
-                    Text(habit.name)
-                        .font(.spoqa(12.5, .bold, relativeTo: .subheadline))
-                        .foregroundStyle(Theme.soil)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(width: nameWidth, height: 34, alignment: .leading)
-                        .padding(.leading, 4)
-                        .contentShape(Rectangle())
-                        .contextMenu {
-                            Button { onEdit(habit) } label: { Label("수정", systemImage: "pencil") }
-                            Button(role: .destructive) { onDelete(habit) } label: { Label("삭제", systemImage: "trash") }
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 2) {
+                            Text(habit.name)
+                                .font(.spoqa(12.5, .bold, relativeTo: .subheadline))
+                                .foregroundStyle(Theme.soil)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            if let badge = HabitProgress.streakBadge(streakCount) {
+                                Text(badge)
+                                    .font(.spoqa(11, .bold, relativeTo: .caption2))
+                                    .foregroundStyle(Theme.grass4)
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                                    .fixedSize()          // 배지는 줄이지 않고, 이름이 먼저 말줄임
+                                    .layoutPriority(1)
+                            }
                         }
-                        .accessibilityHint("길게 누르면 수정하거나 삭제할 수 있어요")
+                        if let target = habit.weeklyTarget {
+                            WeeklyBadge(target: target, count: weeklyCount(of: habit))
+                        }
+                    }
+                    .frame(width: nameWidth, alignment: .leading)
+                    .frame(minHeight: 34, alignment: .leading)   // 기본 크기에선 34, 큰 글자에선 늘어남
+                    .padding(.leading, 4)
+                    .contentShape(Rectangle())
+                    .contextMenu {
+                        Button { onEdit(habit) } label: { Label("수정", systemImage: "pencil") }
+                        Button(role: .destructive) { onDelete(habit) } label: { Label("삭제", systemImage: "trash") }
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(nameAccessibilityLabel(habit, streak: streakCount))
+                    .accessibilityHint("길게 누르거나 동작에서 수정·삭제할 수 있어요")
+                    // 요소를 새로 묶으면 contextMenu의 접근성 동작이 빠질 수 있어 직접 단다
+                    .accessibilityAction(named: "수정") { onEdit(habit) }
+                    .accessibilityAction(named: "삭제") { onDelete(habit) }
 
                     ForEach(week, id: \.self) { date in
                         CheckCell(state: state(of: habit, on: date)) {
@@ -52,12 +77,41 @@ struct WeekMatrixView: View {
         .padding(.leading, 6)
         .padding(.trailing, 10)
         .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Theme.card))
+        .background {
+            // 화면 폭에 맞춰 이름 칸을 넓힌다 (좁은 화면에선 날짜 칸 34pt를 먼저 지킴)
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { tableWidth = proxy.size.width }
+                    .onChange(of: proxy.size.width) { _, newWidth in tableWidth = newWidth }
+            }
+        }
     }
 
     private func state(of habit: Habit, on date: Date) -> CheckCell.CellState {
-        guard HabitProgress.isScheduled(habit, on: date, calendar: calendar) else { return .rest }
+        guard HabitProgress.isCheckable(habit, on: date, calendar: calendar) else { return .rest }
         guard HabitProgress.canToggle(date: date, today: today, calendar: calendar) else { return .future }
         return HabitProgress.isCompleted(habit, on: date, calendar: calendar) ? .done : .missed
+    }
+
+    /// 지금 보고 있는 주의 횟수
+    private func weeklyCount(of habit: Habit) -> Int {
+        HabitProgress.weeklyCount(habit, weekContaining: week.first ?? today, calendar: calendar)
+    }
+
+    /// 오늘 기준 연속 기록 (보고 있는 주와 관계없음)
+    private func streak(of habit: Habit) -> Int {
+        HabitProgress.streak(habit, today: today, calendar: calendar)
+    }
+
+    private func nameAccessibilityLabel(_ habit: Habit, streak count: Int) -> String {
+        var parts = [habit.name]
+        if let target = habit.weeklyTarget {
+            parts.append("주 \(target)회 중 \(weeklyCount(of: habit))회 완료")
+        }
+        if HabitProgress.streakBadge(count) != nil {
+            parts.append(HabitProgress.streakSpoken(count, weekly: habit.weeklyTarget != nil))
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func accessibilityLabel(_ habit: Habit, _ date: Date) -> String {
@@ -93,7 +147,7 @@ private struct DayHeader: View {
             Text(isFirstOfMonth ? "\(calendar.component(.month, from: date))/1" : "\(day)")
                 .font(.spoqa(isFirstOfMonth ? 11 : 13, .bold, relativeTo: .caption))
                 .monospacedDigit()
-                .foregroundStyle(isToday ? Color.white : (isFirstOfMonth ? Theme.grass4 : Theme.soil))
+                .foregroundStyle(isToday ? Theme.onGrass : (isFirstOfMonth ? Theme.grass4 : Theme.soil))
                 .frame(minWidth: 24, minHeight: 18)
                 .background {
                     if isToday {
@@ -135,7 +189,7 @@ struct CheckCell: View {
                         if state == .done {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 11, weight: .heavy))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Theme.onGrass)
                                 .transition(.scale.combined(with: .opacity))
                         }
                     }
@@ -145,5 +199,26 @@ struct CheckCell: View {
             .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: state == .done)
         }
+    }
+}
+
+/// 주 n회 습관의 그 주 횟수 (예: 주 3회 · 2/3). 목표를 채우면 진한 초록 + ✓
+private struct WeeklyBadge: View {
+    let target: Int
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Text(HabitProgress.weeklySummary(target: target, count: count))
+                .monospacedDigit()
+            if count >= target {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 8, weight: .heavy))
+            }
+        }
+        .font(.spoqa(10, .medium, relativeTo: .caption2))
+        .foregroundStyle(count >= target ? Theme.grass4 : Theme.stem)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
     }
 }

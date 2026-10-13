@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs><linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.26"/><stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient><radialGradient id="glow" cx="0.5" cy="1.08" r="0.78"><stop offset="0" stop-color="#D9EDC9" stop-opacity="1"/><stop offset="1" stop-color="#D9EDC9" stop-opacity="0"/></radialGradient></defs>
+<rect width="1024" height="1024" fill="#EEF5E8"/>
+<rect width="1024" height="1024" fill="url(#glow)"/>
+<rect x="156" y="156" width="160" height="160" rx="46" fill="#E3EBDC"/>
+<rect x="156" y="156" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="340" y="156" width="160" height="160" rx="46" fill="#BFE3A5"/>
+<rect x="340" y="156" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="524" y="156" width="160" height="160" rx="46" fill="#BFE3A5"/>
+<rect x="524" y="156" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="708" y="156" width="160" height="160" rx="46" fill="#7FCA6B"/>
+<rect x="708" y="156" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="156" y="340" width="160" height="160" rx="46" fill="#BFE3A5"/>
+<rect x="156" y="340" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="340" y="340" width="160" height="160" rx="46" fill="#BFE3A5"/>
+<rect x="340" y="340" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="524" y="340" width="160" height="160" rx="46" fill="#7FCA6B"/>
+<rect x="524" y="340" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="708" y="340" width="160" height="160" rx="46" fill="#3FA34D"/>
+<rect x="708" y="340" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="156" y="524" width="160" height="160" rx="46" fill="#BFE3A5"/>
+<rect x="156" y="524" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="340" y="524" width="160" height="160" rx="46" fill="#7FCA6B"/>
+<rect x="340" y="524" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="524" y="524" width="160" height="160" rx="46" fill="#3FA34D"/>
+<rect x="524" y="524" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="708" y="524" width="160" height="160" rx="46" fill="#226F35"/>
+<rect x="708" y="524" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="156" y="708" width="160" height="160" rx="46" fill="#7FCA6B"/>
+<rect x="156" y="708" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="340" y="708" width="160" height="160" rx="46" fill="#3FA34D"/>
+<rect x="340" y="708" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<rect x="524" y="708" width="160" height="160" rx="46" fill="#226F35"/>
+<rect x="524" y="708" width="160" height="160" rx="46" fill="url(#sheen)"/>
+<path d="M64 140 C62 100 70 60 82 22 C92 60 98 100 96 140 Z M40 140 C34 112 24 86 8 66 C34 74 56 100 66 140 Z M94 140 C104 104 124 80 152 70 C136 92 124 114 120 140 Z M36 136 C36 128 42 126 50 126 L110 126 C118 126 124 128 124 136 C124 142 120 144 114 144 L46 144 C40 144 36 142 36 136 Z" fill="#226F35" transform="translate(694 690) scale(1.2)"/>
+</svg>

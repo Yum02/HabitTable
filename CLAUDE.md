@@ -76,5 +76,5 @@ HabitTableTests/
 - 완료: 할 일, 알림, 다크 모드, 주 n회 목표, 연속 기록.
 - 브랜치 `feature/weekly-target`에 알림·다크 모드·주 n회·연속 기록이 모두 있고, 아직 `main`에 합치지 않았다(PR 예정).
 - 설계·계획 문서: `docs/superpowers/specs/`, `docs/superpowers/plans/` (날짜-기능 이름).
-- 실기기 확인 필요: VoiceOver의 습관 이름 "수정/삭제" 동작, 주 n회 목표 달성 표시(✓).
+- 실기기 확인 필요: VoiceOver의 습관 이름 "수정/삭제" 동작, 주 n회 목표 달성 표시(✓), VoiceOver의 잔디 칸("10월 9일, 절반 미만 달성")·주 n회 "목표 달성" 읽기, 반복 방식 버튼 '횟수 정하기'(큰 글자).
 - 다음 후보: 위젯.

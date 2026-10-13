@@ -134,6 +134,27 @@ final class HabitProgressTests: XCTestCase {
         XCTAssertEqual(level(0, 2, on: date(2026, 9, 29)), .future)
     }
 
+    func testLawnCellSpokenLevels() {
+        let d = date(2026, 10, 9)
+        func spoken(_ level: ProgressLevel) -> String {
+            HabitProgress.lawnCellSpoken(date: d, level: level, calendar: cal)
+        }
+        XCTAssertEqual(spoken(.none), "10월 9일, 할 습관 없음")
+        XCTAssertEqual(spoken(.zero), "10월 9일, 0% 달성")
+        XCTAssertEqual(spoken(.low), "10월 9일, 절반 미만 달성")
+        XCTAssertEqual(spoken(.mid), "10월 9일, 절반 이상 달성")
+        XCTAssertEqual(spoken(.high), "10월 9일, 대부분 달성")
+        XCTAssertEqual(spoken(.full), "10월 9일, 모두 달성")
+        XCTAssertEqual(spoken(.future), "10월 9일, 아직 안 온 날")
+    }
+
+    /// 4주 잔디가 달을 넘으면 칸마다 자기 달로 읽는다
+    func testLawnCellSpokenUsesOwnMonth() {
+        XCTAssertEqual(HabitProgress.lawnCellSpoken(date: date(2026, 9, 30), level: .full, calendar: cal), "9월 30일, 모두 달성")
+        XCTAssertEqual(HabitProgress.lawnCellSpoken(date: date(2026, 10, 1), level: .full, calendar: cal), "10월 1일, 모두 달성")
+        XCTAssertEqual(HabitProgress.lawnCellSpoken(date: date(2027, 1, 1), level: .zero, calendar: cal), "1월 1일, 0% 달성")
+    }
+
     // MARK: - 체크 가능 여부 / 토글
 
     func testCanToggleOnlyTodayAndPast() {
@@ -264,6 +285,13 @@ final class HabitProgressTests: XCTestCase {
     func testWeeklySummary() {
         XCTAssertEqual(HabitProgress.weeklySummary(target: 3, count: 2), "주 3회 · 2/3")
         XCTAssertEqual(HabitProgress.weeklySummary(target: 2, count: 4), "주 2회 · 4/2")
+    }
+
+    func testWeeklySpoken() {
+        XCTAssertEqual(HabitProgress.weeklySpoken(target: 3, count: 0), "주 3회 중 0회 완료")
+        XCTAssertEqual(HabitProgress.weeklySpoken(target: 3, count: 2), "주 3회 중 2회 완료")
+        XCTAssertEqual(HabitProgress.weeklySpoken(target: 3, count: 3), "주 3회 중 3회 완료, 목표 달성")
+        XCTAssertEqual(HabitProgress.weeklySpoken(target: 2, count: 4), "주 2회 중 4회 완료, 목표 달성")
     }
 
     // MARK: - 연속 기록

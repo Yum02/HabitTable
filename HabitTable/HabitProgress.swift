@@ -122,6 +122,12 @@ enum HabitProgress {
         "주 \(target)회 · \(count)/\(target)"
     }
 
+    /// 접근성용 "주 3회 중 2회 완료". 목표를 채우면(화면의 ✓와 같은 조건) ", 목표 달성"을 붙인다.
+    static func weeklySpoken(target: Int, count: Int) -> String {
+        let base = "주 \(target)회 중 \(count)회 완료"
+        return count >= target ? base + ", 목표 달성" : base
+    }
+
     // MARK: - 연속 기록
 
     /// 오늘 기준 연속 기록. 요일 습관은 해야 하는 날 수, 주 n회 습관은 목표를 채운 주 수.
@@ -193,6 +199,22 @@ enum HabitProgress {
         if progress.done * 2 < progress.total { return .low }      // < 50%
         if progress.done * 4 < progress.total * 3 { return .mid }  // < 75%
         return .high
+    }
+
+    /// 잔디 칸 접근성: "10월 9일, 절반 미만 달성". 4주가 달을 넘을 수 있어 월을 함께 읽는다.
+    static func lawnCellSpoken(date: Date, level: ProgressLevel, calendar: Calendar) -> String {
+        let monthDay = "\(calendar.component(.month, from: date))월 \(calendar.component(.day, from: date))일"
+        let status: String
+        switch level {
+        case .none: status = "할 습관 없음"
+        case .zero: status = "0% 달성"
+        case .low: status = "절반 미만 달성"
+        case .mid: status = "절반 이상 달성"
+        case .high: status = "대부분 달성"
+        case .full: status = "모두 달성"
+        case .future: status = "아직 안 온 날"
+        }
+        return "\(monthDay), \(status)"
     }
 
     // MARK: - 체크

@@ -30,10 +30,12 @@ struct LawnView: View {
                         .foregroundStyle(index == 5 ? Theme.saturday : index == 6 ? Theme.sunday : Theme.stem)
                 }
                 ForEach(dates, id: \.self) { date in
+                    let cellLevel = level(on: date)
                     LawnCell(
                         day: calendar.component(.day, from: date),
-                        level: level(on: date),
-                        isToday: calendar.isDate(date, inSameDayAs: today)
+                        level: cellLevel,
+                        isToday: calendar.isDate(date, inSameDayAs: today),
+                        spokenLabel: HabitProgress.lawnCellSpoken(date: date, level: cellLevel, calendar: calendar)
                     )
                 }
             }
@@ -83,6 +85,7 @@ private struct LawnCell: View {
     let day: Int
     let level: ProgressLevel
     let isToday: Bool
+    let spokenLabel: String
 
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 7, style: .continuous) }
 
@@ -109,18 +112,6 @@ private struct LawnCell: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(day)일 \(levelDescription)")
-    }
-
-    private var levelDescription: String {
-        switch level {
-        case .none: return "할 습관 없음"
-        case .zero: return "달성 0%"
-        case .low: return "절반 미만"
-        case .mid: return "절반 이상"
-        case .high: return "대부분 달성"
-        case .full: return "모두 달성"
-        case .future: return "아직 안 온 날"
-        }
+        .accessibilityLabel(spokenLabel)
     }
 }

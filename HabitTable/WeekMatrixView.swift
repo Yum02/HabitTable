@@ -106,7 +106,7 @@ struct WeekMatrixView: View {
     private func nameAccessibilityLabel(_ habit: Habit, streak count: Int) -> String {
         var parts = [habit.name]
         if let target = habit.weeklyTarget {
-            parts.append("주 \(target)회 중 \(weeklyCount(of: habit))회 완료")
+            parts.append(HabitProgress.weeklySpoken(target: target, count: weeklyCount(of: habit)))
         }
         if HabitProgress.streakBadge(count) != nil {
             parts.append(HabitProgress.streakSpoken(count, weekly: habit.weeklyTarget != nil))
